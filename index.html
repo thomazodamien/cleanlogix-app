@@ -40,7 +40,7 @@
 </head>
 <body class="h-full text-slate-800 flex flex-col antialiased selection:bg-teal-500 selection:text-white pb-16 md:pb-0">
 
-    <!-- INITIALISATION FIREBASE AVEC VOS CLÉS -->
+    <!-- INITIALISATION FIREBASE -->
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyD2Efo5GxOd2UhOWapBtjJTOmS2gnaKkW4",
@@ -87,7 +87,7 @@
                 <div class="flex items-center gap-2 bg-slate-800 p-1 rounded-xl border border-slate-700/60">
                     <button id="btn-role-agent" onclick="switchRole('agent')" class="flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md transition-all">
                         <i class="ph text-base ph-broom"></i>
-                        <span>Vue Agent</span>
+                        <span>Agent</span>
                     </button>
                     <button id="btn-role-manager" onclick="switchRole('manager')" class="relative flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white transition-all">
                         <i class="ph text-base ph-clipboard-text"></i>
@@ -135,7 +135,7 @@
                         <i class="ph-duotone ph-hand-waving text-teal-600 text-2xl"></i>
                         Espace Agent de Propreté
                     </h2>
-                    <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Faites votre demande de réapprovisionnement. Le responsable la recevra en direct.</p>
+                    <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Faites votre demande de réapprovisionnement.</p>
                 </div>
 
                 <div class="flex flex-wrap sm:flex-nowrap items-center gap-3">
@@ -213,6 +213,7 @@
 
         <!-- VUE 2 : RESPONSABLE -->
         <div id="view-manager" class="hidden space-y-6">
+            <!-- Écran PIN -->
             <div id="manager-lock-screen" class="max-w-md mx-auto my-12 bg-white p-8 rounded-2xl shadow-xl border border-slate-200 text-center">
                 <div class="w-16 h-16 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
                     <i class="ph-bold ph-lock-key"></i>
@@ -220,15 +221,16 @@
                 <h2 class="text-xl font-extrabold text-slate-900">Espace Responsable</h2>
                 <p class="text-xs text-slate-500 mt-1 mb-6">Code PIN par défaut : <span class="font-bold text-slate-800">1234</span></p>
                 <input type="password" id="manager-pin-input" maxlength="4" placeholder="••••" class="w-40 text-center text-2xl font-bold py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none mb-4">
-                <button onclick="verifyManagerPin()" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl">Déverrouiller</button>
+                <button onclick="verifyManagerPin()" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl cursor-pointer">Déverrouiller</button>
                 <p id="pin-error-msg" class="text-rose-500 text-xs font-semibold mt-3 hidden">Code PIN incorrect.</p>
             </div>
 
+            <!-- Contenu Responsable Déverrouillé -->
             <div id="manager-unlocked-content" class="hidden space-y-6">
                 <div class="bg-slate-900 text-white p-6 rounded-2xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div>
-                        <h2 class="text-2xl font-black">Suivi des Demandes en Direct (Cloud)</h2>
-                        <p class="text-slate-400 text-xs sm:text-sm mt-1">Chaque commande passée par un agent apparaît ici en direct.</p>
+                        <h2 class="text-2xl font-black">Suivi des Demandes & Administration</h2>
+                        <p class="text-slate-400 text-xs sm:text-sm mt-1">Gérez vos commandes, ajoutez vos agents et vos produits.</p>
                     </div>
                     <div class="flex items-center gap-3">
                         <div class="bg-slate-800 p-3 rounded-xl text-center min-w-[85px]">
@@ -242,8 +244,45 @@
                     </div>
                 </div>
 
-                <div id="orders-list-container" class="space-y-4">
-                    <!-- Liste des commandes reçues -->
+                <!-- ONGLET ADMINISTRATION : GESTION AGENTS & PRODUITS -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Gestion des Agents -->
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                        <h3 class="font-bold text-slate-900 flex items-center gap-2">
+                            <i class="ph-bold ph-users text-teal-600 text-lg"></i> Gestion des Agents
+                        </h3>
+                        <div class="space-y-2">
+                            <input type="text" id="new-agent-name" placeholder="Nom de l'agent (ex: Thomas B.)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none">
+                            <input type="text" id="new-agent-sector" placeholder="Zone (ex: Bâtiment C)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none">
+                            <button onclick="addNewAgent()" class="w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-2.5 rounded-xl text-xs transition-all">Ajouter l'agent</button>
+                        </div>
+                        <div id="manager-agents-list" class="space-y-2 max-h-40 overflow-y-auto pt-2 border-t border-slate-100">
+                            <!-- Liste gérée par JS -->
+                        </div>
+                    </div>
+
+                    <!-- Gestion des Produits -->
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                        <h3 class="font-bold text-slate-900 flex items-center gap-2">
+                            <i class="ph-bold ph-package text-teal-600 text-lg"></i> Catalogue des Produits
+                        </h3>
+                        <div class="space-y-2">
+                            <input type="text" id="new-prod-name" placeholder="Nom du produit" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none">
+                            <input type="text" id="new-prod-unit" placeholder="Unité (ex: Bidon 5L, Carton...)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none">
+                            <button onclick="addNewProduct()" class="w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-2.5 rounded-xl text-xs transition-all">Ajouter au catalogue</button>
+                        </div>
+                        <div id="manager-products-list" class="space-y-2 max-h-40 overflow-y-auto pt-2 border-t border-slate-100">
+                            <!-- Liste gérée par JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LISTE DES COMMANDES -->
+                <div class="space-y-4 pt-4">
+                    <h3 class="font-bold text-slate-900 text-lg">Commandes Reçues</h3>
+                    <div id="orders-list-container" class="space-y-4">
+                        <!-- Liste des commandes reçues -->
+                    </div>
                 </div>
             </div>
         </div>
@@ -251,21 +290,21 @@
 
     <!-- LOGIQUE JS -->
     <script>
-        const INITIAL_PRODUCTS = [
-            { id: 1, name: "Détergent sols concentré 5L", category: "Sols & Surfaces", unit: "Bidon 5L", icon: "ph-drop" },
-            { id: 2, name: "Désinfectant multi-surfaces 750ml", category: "Sols & Surfaces", unit: "Flacon", icon: "ph-spray-bottle" },
-            { id: 3, name: "Chiffons microfibres pro (lot de 10)", category: "Protection & EPI", unit: "Lot", icon: "ph-stack" },
-            { id: 4, name: "Gants nitrile jetables (Taille L)", category: "Protection & EPI", unit: "Boîte de 100", icon: "ph-hand" },
-            { id: 5, name: "Gel détartrant sanitaires", category: "Sanitaires", unit: "Flacon 1L", icon: "ph-toilet" }
+        const DEFAULT_PRODUCTS = [
+            { id: 1, name: "Détergent sols concentré 5L", unit: "Bidon 5L", icon: "ph-drop" },
+            { id: 2, name: "Désinfectant multi-surfaces 750ml", unit: "Flacon", icon: "ph-spray-bottle" },
+            { id: 3, name: "Chiffons microfibres pro", unit: "Lot de 10", icon: "ph-stack" },
+            { id: 4, name: "Gants nitrile jetables", unit: "Boîte de 100", icon: "ph-hand" }
         ];
 
-        const INITIAL_AGENTS = [
+        const DEFAULT_AGENTS = [
             { id: 1, name: "Sophie Martin", sector: "Bâtiment A - Étage 1" },
             { id: 2, name: "Marc Leroy", sector: "Bâtiment B - RDC" }
         ];
 
-        let catalog = INITIAL_PRODUCTS;
-        let agents = INITIAL_AGENTS;
+        // Chargement depuis le stockage local (ou défaut)
+        let catalog = JSON.parse(localStorage.getItem('cleanlogix_catalog')) || DEFAULT_PRODUCTS;
+        let agents = JSON.parse(localStorage.getItem('cleanlogix_agents')) || DEFAULT_AGENTS;
         let orders = [];
         let cart = {};
 
@@ -273,16 +312,15 @@
             initAgentsSelect();
             renderCatalog();
             renderCart();
+            renderManagerManagementLists();
 
             if (isCloudConnected && db) {
-                // ÉCOUTE CLOUD EN TEMPS RÉEL DEPUIS FIREBASE
                 db.collection("orders").orderBy("timestamp", "desc").onSnapshot((snapshot) => {
                     let newOrders = [];
                     snapshot.forEach((doc) => {
                         newOrders.push({ firestoreId: doc.id, ...doc.data() });
                     });
                     
-                    // Si une nouvelle commande arrive, déclencher le bip sonore et la notification
                     if (newOrders.length > orders.length && orders.length > 0) {
                         playNotificationBeep();
                         showPushNotification(newOrders[0]);
@@ -296,55 +334,85 @@
         };
 
         function switchRole(role) {
+            const viewAgent = document.getElementById('view-agent');
+            const viewManager = document.getElementById('view-manager');
+            const btnAgent = document.getElementById('btn-role-agent');
+            const btnManager = document.getElementById('btn-role-manager');
+
+            if (!viewAgent || !viewManager) return;
+
             if (role === 'agent') {
-                document.getElementById('view-agent').classList.remove('hidden');
-                document.getElementById('view-manager').classList.add('hidden');
-                document.getElementById('btn-role-agent').className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md";
-                document.getElementById('btn-role-manager').className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white";
+                viewAgent.classList.remove('hidden');
+                viewManager.classList.add('hidden');
+                if(btnAgent) btnAgent.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md transition-all";
+                if(btnManager) btnManager.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white transition-all";
             } else {
-                document.getElementById('view-manager').classList.remove('hidden');
-                document.getElementById('view-agent').classList.add('hidden');
-                document.getElementById('btn-role-manager').className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md";
-                document.getElementById('btn-role-agent').className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white";
+                viewManager.classList.remove('hidden');
+                viewAgent.classList.add('hidden');
+                if(btnManager) btnManager.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md transition-all";
+                if(btnAgent) btnAgent.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white transition-all";
             }
         }
 
         function verifyManagerPin() {
-            if (document.getElementById('manager-pin-input').value === "1234") {
-                document.getElementById('manager-lock-screen').classList.add('hidden');
-                document.getElementById('manager-unlocked-content').classList.remove('hidden');
+            const pinInput = document.getElementById('manager-pin-input');
+            const errorMsg = document.getElementById('pin-error-msg');
+            const lockScreen = document.getElementById('manager-lock-screen');
+            const unlockedContent = document.getElementById('manager-unlocked-content');
+
+            if (pinInput && pinInput.value === "1234") {
+                lockScreen.classList.add('hidden');
+                unlockedContent.classList.remove('hidden');
+                errorMsg.classList.add('hidden');
+                renderManagerManagementLists();
             } else {
-                document.getElementById('pin-error-msg').classList.remove('hidden');
+                errorMsg.classList.remove('hidden');
+                if(pinInput) pinInput.value = "";
             }
         }
 
         function initAgentsSelect() {
             const select = document.getElementById('agent-name-select');
+            if (!select) return;
             select.innerHTML = "";
             agents.forEach(a => {
-                select.innerHTML += `<option value="${a.name}" data-sector="${a.sector}">${a.name}</option>`;
+                select.innerHTML += `<option value="${a.name}" data-sector="${a.sector}">${a.name} (${a.sector})</option>`;
             });
             onAgentSelectChange();
         }
 
         function onAgentSelectChange() {
             const select = document.getElementById('agent-name-select');
+            const locationInput = document.getElementById('agent-location-input');
+            if (!select || !locationInput) return;
             const selectedOpt = select.options[select.selectedIndex];
             if (selectedOpt) {
-                document.getElementById('agent-location-input').value = selectedOpt.getAttribute('data-sector') || '';
+                locationInput.value = selectedOpt.getAttribute('data-sector') || '';
             }
         }
 
         function renderCatalog() {
             const grid = document.getElementById('products-grid');
+            const searchInput = document.getElementById('catalog-search');
+            if (!grid) return;
+            
             grid.innerHTML = "";
-            catalog.forEach(p => {
+            const filter = searchInput ? searchInput.value.toLowerCase() : "";
+
+            const filtered = catalog.filter(p => p.name.toLowerCase().includes(filter));
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `<p class="text-xs text-slate-400 col-span-2 text-center py-6">Aucun produit trouvé</p>`;
+                return;
+            }
+
+            filtered.forEach(p => {
                 const qty = cart[p.id] || 0;
                 grid.innerHTML += `
                     <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between gap-4">
                         <div class="flex items-start gap-3">
                             <div class="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-xl">
-                                <i class="ph ${p.icon}"></i>
+                                <i class="ph ${p.icon || 'ph-package'}"></i>
                             </div>
                             <div>
                                 <h4 class="font-bold text-slate-900 text-sm">${p.name}</h4>
@@ -373,33 +441,46 @@
         function renderCart() {
             const container = document.getElementById('cart-items');
             const btn = document.getElementById('btn-submit-order');
+            const countBadge = document.getElementById('cart-count-badge');
             const keys = Object.keys(cart);
+            if (!container) return;
             container.innerHTML = "";
+
+            let totalItems = 0;
+            keys.forEach(k => totalItems += cart[k]);
+            if (countBadge) countBadge.textContent = `${totalItems} article${totalItems > 1 ? 's' : ''}`;
 
             if (keys.length === 0) {
                 container.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">Panier vide</p>`;
-                btn.disabled = true;
-                btn.className = "w-full bg-slate-200 text-slate-400 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2";
+                if (btn) {
+                    btn.disabled = true;
+                    btn.className = "w-full bg-slate-200 text-slate-400 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2";
+                }
                 return;
             }
 
             keys.forEach(id => {
                 const p = catalog.find(item => item.id == id);
-                container.innerHTML += `
-                    <div class="flex justify-between items-center text-xs p-2 bg-slate-50 rounded-lg">
-                        <span class="font-bold text-slate-800">${p.name}</span>
-                        <span class="font-bold text-teal-600">x${cart[id]}</span>
-                    </div>
-                `;
+                if (p) {
+                    container.innerHTML += `
+                        <div class="flex justify-between items-center text-xs p-2 bg-slate-50 rounded-lg">
+                            <span class="font-bold text-slate-800">${p.name}</span>
+                            <span class="font-bold text-teal-600">x${cart[id]}</span>
+                        </div>
+                    `;
+                }
             });
-            btn.disabled = false;
-            btn.className = "w-full bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-teal-500/20";
+            if (btn) {
+                btn.disabled = false;
+                btn.className = "w-full bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-teal-500/20";
+            }
         }
 
         async function submitOrder() {
             const agent = document.getElementById('agent-name-select').value;
             const location = document.getElementById('agent-location-input').value;
-            const priority = document.querySelector('input[name="priority"]:checked').value;
+            const priorityEl = document.querySelector('input[name="priority"]:checked');
+            const priority = priorityEl ? priorityEl.value : "Normal";
 
             const items = Object.keys(cart).map(id => {
                 const p = catalog.find(item => item.id == id);
@@ -416,7 +497,6 @@
             };
 
             if (isCloudConnected && db) {
-                // Envoi direct dans la base de données Cloud Firebase
                 await db.collection("orders").add(newOrder);
             }
 
@@ -426,8 +506,92 @@
             alert("Commande transmise avec succès sur le Cloud !");
         }
 
+        // GESTION ADMIN (AJOUT / SUPPRESSION AGENTS & PRODUITS)
+        function renderManagerManagementLists() {
+            const agentsListContainer = document.getElementById('manager-agents-list');
+            const productsListContainer = document.getElementById('manager-products-list');
+
+            if (agentsListContainer) {
+                agentsListContainer.innerHTML = "";
+                agents.forEach(a => {
+                    agentsListContainer.innerHTML += `
+                        <div class="flex justify-between items-center text-xs bg-slate-50 p-2 rounded-xl">
+                            <div><strong>${a.name}</strong> <span class="text-slate-400">(${a.sector})</span></div>
+                            <button onclick="deleteAgent(${a.id})" class="text-rose-500 hover:text-rose-700 font-bold px-2">✕</button>
+                        </div>
+                    `;
+                });
+            }
+
+            if (productsListContainer) {
+                productsListContainer.innerHTML = "";
+                catalog.forEach(p => {
+                    productsListContainer.innerHTML += `
+                        <div class="flex justify-between items-center text-xs bg-slate-50 p-2 rounded-xl">
+                            <div><strong>${p.name}</strong> <span class="text-slate-400">(${p.unit})</span></div>
+                            <button onclick="deleteProduct(${p.id})" class="text-rose-500 hover:text-rose-700 font-bold px-2">✕</button>
+                        </div>
+                    `;
+                });
+            }
+        }
+
+        function addNewAgent() {
+            const nameInput = document.getElementById('new-agent-name');
+            const sectorInput = document.getElementById('new-agent-sector');
+            if (!nameInput || !nameInput.value) return;
+
+            const newAgent = {
+                id: Date.now(),
+                name: nameInput.value,
+                sector: sectorInput && sectorInput.value ? sectorInput.value : "Général"
+            };
+
+            agents.push(newAgent);
+            localStorage.setItem('cleanlogix_agents', JSON.stringify(agents));
+            nameInput.value = "";
+            if (sectorInput) sectorInput.value = "";
+            initAgentsSelect();
+            renderManagerManagementLists();
+        }
+
+        function deleteAgent(id) {
+            agents = agents.filter(a => a.id !== id);
+            localStorage.setItem('cleanlogix_agents', JSON.stringify(agents));
+            initAgentsSelect();
+            renderManagerManagementLists();
+        }
+
+        function addNewProduct() {
+            const nameInput = document.getElementById('new-prod-name');
+            const unitInput = document.getElementById('new-prod-unit');
+            if (!nameInput || !nameInput.value) return;
+
+            const newProd = {
+                id: Date.now(),
+                name: nameInput.value,
+                unit: unitInput && unitInput.value ? unitInput.value : "Unité",
+                icon: "ph-package"
+            };
+
+            catalog.push(newProd);
+            localStorage.setItem('cleanlogix_catalog', JSON.stringify(catalog));
+            nameInput.value = "";
+            if (unitInput) unitInput.value = "";
+            renderCatalog();
+            renderManagerManagementLists();
+        }
+
+        function deleteProduct(id) {
+            catalog = catalog.filter(p => p.id !== id);
+            localStorage.setItem('cleanlogix_catalog', JSON.stringify(catalog));
+            renderCatalog();
+            renderManagerManagementLists();
+        }
+
         function renderOrdersList() {
             const container = document.getElementById('orders-list-container');
+            if (!container) return;
             container.innerHTML = "";
 
             if (orders.length === 0) {
@@ -463,8 +627,10 @@
         }
 
         function updateStats() {
-            document.getElementById('stat-pending').textContent = orders.filter(o => o.status === 'En attente').length;
-            document.getElementById('stat-completed').textContent = orders.filter(o => o.status === 'Prête').length;
+            const pendingEl = document.getElementById('stat-pending');
+            const completedEl = document.getElementById('stat-completed');
+            if (pendingEl) pendingEl.textContent = orders.filter(o => o.status === 'En attente').length;
+            if (completedEl) completedEl.textContent = orders.filter(o => o.status === 'Prête').length;
         }
 
         function playNotificationBeep() {
@@ -484,6 +650,7 @@
 
         function showPushNotification(order) {
             const popup = document.getElementById('push-notification');
+            if (!popup) return;
             document.getElementById('push-title').textContent = `${order.agent} (${order.priority})`;
             document.getElementById('push-body').textContent = `${order.location} - Nouvelle commande reçue.`;
             popup.classList.remove('translate-y-[-180%]');
@@ -491,7 +658,8 @@
         }
 
         function dismissPushNotification() {
-            document.getElementById('push-notification').classList.add('translate-y-[-180%]');
+            const popup = document.getElementById('push-notification');
+            if (popup) popup.classList.add('translate-y-[-180%]');
         }
     </script>
 </body>
