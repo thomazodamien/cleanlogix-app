@@ -81,15 +81,13 @@
                 </div>
 
                 <div class="flex items-center gap-2 bg-slate-800 p-1 rounded-xl border border-slate-700/60">
-                    <button id="btn-role-agent" onclick="switchRole('agent')" class="flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md transition-all">
-                        <i class="ph text-base ph-broom"></i>
-                        <span>Agent</span>
-                    </button>
-                    <button id="btn-role-manager" onclick="switchRole('manager')" class="flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white transition-all">
-                        <i class="ph text-base ph-clipboard-text"></i>
-                        <span>Responsable</span>
-                    </button>
-                </div>
+    <button onclick="switchRole('agent')" class="px-4 py-1.5 rounded-lg text-xs font-semibold bg-teal-500 text-slate-950 transition-all" id="tab-agent">
+        Agent
+    </button>
+    <button onclick="switchRole('manager')" class="px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white transition-all" id="tab-manager">
+        Responsable
+    </button>
+</div>
             </div>
         </div>
     </header>
@@ -237,14 +235,21 @@
         function switchRole(role) {
     const viewAgent = document.getElementById('view-agent');
     const viewManager = document.getElementById('view-manager');
+    const tabAgent = document.getElementById('tab-agent');
+    const tabManager = document.getElementById('tab-manager');
+
     if (!viewAgent || !viewManager) return;
 
     if (role === 'agent') {
         viewAgent.classList.remove('hidden');
         viewManager.classList.add('hidden');
+        if(tabAgent) tabAgent.className = "px-4 py-1.5 rounded-lg text-xs font-semibold bg-teal-500 text-slate-950 transition-all";
+        if(tabManager) tabManager.className = "px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white transition-all";
     } else {
         viewManager.classList.remove('hidden');
         viewAgent.classList.add('hidden');
+        if(tabManager) tabManager.className = "px-4 py-1.5 rounded-lg text-xs font-semibold bg-teal-500 text-slate-950 transition-all";
+        if(tabAgent) tabAgent.className = "px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white transition-all";
     }
 }
 
