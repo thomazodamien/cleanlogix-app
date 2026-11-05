@@ -34,13 +34,11 @@
 
     <style>
         body { font-family: 'Inter', sans-serif; }
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="h-full text-slate-800 flex flex-col antialiased selection:bg-teal-500 selection:text-white pb-16 md:pb-0">
 
-    <!-- INITIALISATION FIREBASE AVEC VOS CLÉS -->
+    <!-- INITIALISATION FIREBASE -->
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyD2Efo5GxOd2UhOWapBtjJTOmS2gnaKkW4",
@@ -59,9 +57,9 @@
             firebase.initializeApp(firebaseConfig);
             db = firebase.firestore();
             isCloudConnected = true;
-            console.log("Connecté à la base de données Firebase CleanLogix !");
+            console.log("Firebase connecté avec succès !");
         } catch (e) {
-            console.error("Erreur d'initialisation Firebase :", e);
+            console.error("Erreur Firebase :", e);
         }
     </script>
 
@@ -69,54 +67,43 @@
     <header class="bg-slate-900 text-white sticky top-0 z-40 shadow-lg">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
-                <!-- Logo & Indicateur Cloud -->
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-400 flex items-center justify-center text-slate-900 font-bold text-xl shadow-lg shadow-teal-500/20">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-400 flex items-center justify-center text-slate-900 font-bold text-xl shadow-lg">
                         <i class="ph-bold ph-sparkle text-2xl text-white"></i>
                     </div>
                     <div>
                         <h1 class="font-extrabold text-lg leading-tight tracking-tight">Clean<span class="text-teal-400">Logix</span></h1>
                         <p class="text-[11px] text-slate-400 flex items-center gap-1">
-                            <span id="sync-dot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                            <span id="sync-status">Cloud Direct Connecté</span>
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span>Cloud Direct Connecté</span>
                         </p>
                     </div>
                 </div>
 
-                <!-- Changement de Rôle -->
                 <div class="flex items-center gap-2 bg-slate-800 p-1 rounded-xl border border-slate-700/60">
                     <button id="btn-role-agent" onclick="switchRole('agent')" class="flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md transition-all">
                         <i class="ph text-base ph-broom"></i>
-                        <span>Vue Agent</span>
+                        <span>Agent</span>
                     </button>
-                    <button id="btn-role-manager" onclick="switchRole('manager')" class="relative flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white transition-all">
+                    <button id="btn-role-manager" onclick="switchRole('manager')" class="flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white transition-all">
                         <i class="ph text-base ph-clipboard-text"></i>
                         <span>Responsable</span>
-                        <span id="nav-unread-badge" class="hidden absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-extrabold text-white shadow-md animate-bounce">0</span>
                     </button>
                 </div>
             </div>
         </div>
     </header>
 
-    <!-- NOTIFICATION PUSH EN DIRECT -->
+    <!-- NOTIFICATION PUSH -->
     <div id="push-notification" class="fixed top-20 right-4 left-4 sm:left-auto sm:w-96 z-50 transform translate-y-[-180%] transition-transform duration-500 ease-out pointer-events-none">
         <div class="bg-slate-900/95 backdrop-blur-md text-white p-4 rounded-2xl shadow-2xl border border-teal-500/40 flex gap-3.5 items-start pointer-events-auto">
             <div class="p-2.5 bg-teal-500/20 text-teal-400 rounded-xl flex-shrink-0">
                 <i class="ph-fill ph-bell-ringing text-2xl animate-pulse"></i>
             </div>
             <div class="flex-1 min-w-0">
-                <div class="flex items-center justify-between gap-2">
-                    <span class="text-[10px] font-bold text-teal-400 uppercase tracking-wider">Nouvelle Commande !</span>
-                    <span class="text-[10px] text-slate-400">En direct</span>
-                </div>
+                <span class="text-[10px] font-bold text-teal-400 uppercase tracking-wider">Nouvelle Commande !</span>
                 <h4 id="push-title" class="text-sm font-bold text-white mt-0.5 truncate">Commande reçue</h4>
-                <p id="push-body" class="text-xs text-slate-300 mt-1 line-clamp-2">Chargement du détail...</p>
-                <div class="mt-3 flex items-center gap-2">
-                    <button onclick="switchRole('manager'); dismissPushNotification();" class="text-xs bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold px-3 py-1.5 rounded-lg transition-colors">
-                        Ouvrir et préparer
-                    </button>
-                </div>
+                <p id="push-body" class="text-xs text-slate-300 mt-1">Détails de la commande...</p>
             </div>
             <button onclick="dismissPushNotification()" class="text-slate-400 hover:text-white">
                 <i class="ph ph-x text-lg"></i>
@@ -124,10 +111,10 @@
         </div>
     </div>
 
-    <!-- MAIN WRAPPER -->
+    <!-- MAIN -->
     <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
 
-        <!-- VUE 1 : AGENT -->
+        <!-- VUE AGENT -->
         <div id="view-agent" class="space-y-6">
             <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
@@ -135,154 +122,106 @@
                         <i class="ph-duotone ph-hand-waving text-teal-600 text-2xl"></i>
                         Espace Agent de Propreté
                     </h2>
-                    <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Faites votre demande de réapprovisionnement. Le responsable la recevra en direct.</p>
+                    <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Faites votre demande de réapprovisionnement.</p>
                 </div>
 
                 <div class="flex flex-wrap sm:flex-nowrap items-center gap-3">
-                    <div class="w-full sm:w-auto">
+                    <div>
                         <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Agent Intervenant</label>
-                        <select id="agent-name-select" onchange="onAgentSelectChange()" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-3 py-2 font-semibold">
-                            <!-- Dynamique -->
+                        <select id="agent-name-select" onchange="onAgentSelectChange()" class="bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-3 py-2 font-semibold">
+                            <option value="Sophie Martin" data-sector="Bâtiment A - Étage 1">Sophie Martin</option>
+                            <option value="Marc Leroy" data-sector="Bâtiment B - RDC">Marc Leroy</option>
                         </select>
                     </div>
-
-                    <div class="w-full sm:w-auto">
+                    <div>
                         <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Zone d'intervention</label>
-                        <input type="text" id="agent-location-input" placeholder="Ex: Bâtiment A - Étage 2" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-3 py-2 font-medium">
+                        <input type="text" id="agent-location-input" value="Bâtiment A - Étage 1" class="bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-3 py-2 font-medium">
                     </div>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- CATALOGUE -->
                 <div class="lg:col-span-2 space-y-5">
-                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80 space-y-3">
-                        <div class="relative">
-                            <i class="ph ph-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg"></i>
-                            <input type="text" id="catalog-search" oninput="renderCatalog()" placeholder="Rechercher un produit..." class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none">
-                        </div>
-                    </div>
                     <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <!-- Produits dynamiques -->
+                        <!-- Généré par JS -->
                     </div>
                 </div>
 
-                <!-- PANIER -->
                 <div class="lg:col-span-1">
-                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 sticky top-24 flex flex-col max-h-[calc(100vh-7rem)]">
-                        <div class="flex items-center justify-between pb-4 border-b border-slate-100">
-                            <h3 class="font-bold text-slate-900 flex items-center gap-2">
-                                <i class="ph-bold ph-shopping-cart text-teal-600 text-lg"></i>
-                                Panier de Réappro
-                            </h3>
-                            <span id="cart-count-badge" class="bg-teal-50 text-teal-700 text-xs font-bold px-2.5 py-0.5 rounded-full border border-teal-200">0 article</span>
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 sticky top-24 flex flex-col">
+                        <h3 class="font-bold text-slate-900 flex items-center gap-2 pb-4 border-b border-slate-100">
+                            <i class="ph-bold ph-shopping-cart text-teal-600 text-lg"></i> Panier de Réappro
+                        </h3>
+                        <div id="cart-items" class="py-4 space-y-3 min-h-[120px]">
+                            <p class="text-xs text-slate-400 text-center py-4">Panier vide</p>
                         </div>
-
-                        <div id="cart-items" class="flex-1 overflow-y-auto py-4 space-y-3 min-h-[160px]">
-                            <!-- Contenu Panier -->
-                        </div>
-
-                        <div class="pt-4 border-t border-slate-100 space-y-4">
-                            <div>
-                                <label class="block text-xs font-bold text-slate-700 mb-1.5">Urgence :</label>
-                                <div class="grid grid-cols-3 gap-2">
-                                    <label class="flex items-center justify-center p-2 rounded-xl border text-xs font-semibold cursor-pointer has-[:checked]:border-teal-500 has-[:checked]:bg-teal-50">
-                                        <input type="radio" name="priority" value="Normal" checked class="sr-only">
-                                        <span>Normal</span>
-                                    </label>
-                                    <label class="flex items-center justify-center p-2 rounded-xl border text-xs font-semibold cursor-pointer has-[:checked]:border-amber-500 has-[:checked]:bg-amber-50">
-                                        <input type="radio" name="priority" value="Urgent" class="sr-only">
-                                        <span>Urgent</span>
-                                    </label>
-                                    <label class="flex items-center justify-center p-2 rounded-xl border text-xs font-semibold cursor-pointer has-[:checked]:border-rose-500 has-[:checked]:bg-rose-50">
-                                        <input type="radio" name="priority" value="Très Urgent" class="sr-only">
-                                        <span class="text-rose-600">🚨 Critique</span>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <button id="btn-submit-order" onclick="submitOrder()" disabled class="w-full bg-slate-200 text-slate-400 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2">
-                                <i class="ph-bold ph-paper-plane-right text-lg"></i>
-                                <span>Envoyer au Responsable</span>
-                            </button>
-                        </div>
+                        <button id="btn-submit-order" onclick="submitOrder()" disabled class="w-full bg-slate-200 text-slate-400 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2">
+                            <span>Envoyer au Responsable</span>
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- VUE 2 : RESPONSABLE -->
+        <!-- VUE RESPONSABLE -->
         <div id="view-manager" class="hidden space-y-6">
+            <!-- Écran de verrouillage PIN -->
             <div id="manager-lock-screen" class="max-w-md mx-auto my-12 bg-white p-8 rounded-2xl shadow-xl border border-slate-200 text-center">
                 <div class="w-16 h-16 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
                     <i class="ph-bold ph-lock-key"></i>
                 </div>
                 <h2 class="text-xl font-extrabold text-slate-900">Espace Responsable</h2>
-                <p class="text-xs text-slate-500 mt-1 mb-6">Code PIN par défaut : <span class="font-bold text-slate-800">1234</span></p>
-                <input type="password" id="manager-pin-input" maxlength="4" placeholder="••••" class="w-40 text-center text-2xl font-bold py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none mb-4">
-                <button onclick="verifyManagerPin()" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl">Déverrouiller</button>
-                <p id="pin-error-msg" class="text-rose-500 text-xs font-semibold mt-3 hidden">Code PIN incorrect.</p>
+                <p class="text-xs text-slate-500 mt-1 mb-6">Entrez le code PIN (Par défaut : <span class="font-bold text-slate-800">1234</span>)</p>
+                <input type="password" id="manager-pin-input" maxlength="4" placeholder="••••" class="w-40 text-center text-2xl font-bold py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none mb-4 tracking-widest">
+                <br>
+                <button onclick="verifyManagerPin()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl transition-all shadow-md cursor-pointer">
+                    Déverrouiller
+                </button>
+                <p id="pin-error-msg" class="text-rose-500 text-xs font-semibold mt-3 hidden">Code PIN incorrect (Essayez 1234)</p>
             </div>
 
+            <!-- Contenu Responsable Déverrouillé -->
             <div id="manager-unlocked-content" class="hidden space-y-6">
-                <div class="bg-slate-900 text-white p-6 rounded-2xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div class="bg-slate-900 text-white p-6 rounded-2xl shadow-xl flex justify-between items-center">
                     <div>
-                        <h2 class="text-2xl font-black">Suivi des Demandes en Direct (Cloud)</h2>
-                        <p class="text-slate-400 text-xs sm:text-sm mt-1">Chaque commande passée par un agent apparaît ici en direct.</p>
+                        <h2 class="text-2xl font-black">Suivi des Demandes en Direct</h2>
+                        <p class="text-slate-400 text-xs mt-1">Commandes synchronisées via le Cloud.</p>
                     </div>
-                    <div class="flex items-center gap-3">
-                        <div class="bg-slate-800 p-3 rounded-xl text-center min-w-[85px]">
-                            <span id="stat-pending" class="block text-2xl font-black text-amber-400">0</span>
-                            <span class="text-[10px] text-slate-400 font-semibold">À Traiter</span>
-                        </div>
-                        <div class="bg-slate-800 p-3 rounded-xl text-center min-w-[85px]">
-                            <span id="stat-completed" class="block text-2xl font-black text-emerald-400">0</span>
-                            <span class="text-[10px] text-slate-400 font-semibold">Prêtes</span>
-                        </div>
+                    <div class="bg-slate-800 p-3 rounded-xl text-center min-w-[85px]">
+                        <span id="stat-pending" class="block text-2xl font-black text-amber-400">0</span>
+                        <span class="text-[10px] text-slate-400 font-semibold uppercase">À Traiter</span>
                     </div>
                 </div>
 
                 <div id="orders-list-container" class="space-y-4">
-                    <!-- Liste des commandes reçues -->
+                    <!-- Commandes -->
                 </div>
             </div>
         </div>
     </main>
 
-    <!-- LOGIQUE JS -->
+    <!-- LOGIQUE JAVASCRIPT CORRIGÉE -->
     <script>
-        const INITIAL_PRODUCTS = [
-            { id: 1, name: "Détergent sols concentré 5L", category: "Sols & Surfaces", unit: "Bidon 5L", icon: "ph-drop" },
-            { id: 2, name: "Désinfectant multi-surfaces 750ml", category: "Sols & Surfaces", unit: "Flacon", icon: "ph-spray-bottle" },
-            { id: 3, name: "Chiffons microfibres pro (lot de 10)", category: "Protection & EPI", unit: "Lot", icon: "ph-stack" },
-            { id: 4, name: "Gants nitrile jetables (Taille L)", category: "Protection & EPI", unit: "Boîte de 100", icon: "ph-hand" },
-            { id: 5, name: "Gel détartrant sanitaires", category: "Sanitaires", unit: "Flacon 1L", icon: "ph-toilet" }
+        const catalog = [
+            { id: 1, name: "Détergent sols concentré 5L", unit: "Bidon 5L", icon: "ph-drop" },
+            { id: 2, name: "Désinfectant multi-surfaces 750ml", unit: "Flacon", icon: "ph-spray-bottle" },
+            { id: 3, name: "Chiffons microfibres pro", unit: "Lot de 10", icon: "ph-stack" },
+            { id: 4, name: "Gants nitrile jetables", unit: "Boîte de 100", icon: "ph-hand" }
         ];
 
-        const INITIAL_AGENTS = [
-            { id: 1, name: "Sophie Martin", sector: "Bâtiment A - Étage 1" },
-            { id: 2, name: "Marc Leroy", sector: "Bâtiment B - RDC" }
-        ];
-
-        let catalog = INITIAL_PRODUCTS;
-        let agents = INITIAL_AGENTS;
-        let orders = [];
         let cart = {};
+        let orders = [];
 
         window.onload = function() {
-            initAgentsSelect();
             renderCatalog();
-            renderCart();
-
+            
             if (isCloudConnected && db) {
-                // ÉCOUTE CLOUD EN TEMPS RÉEL DEPUIS FIREBASE
                 db.collection("orders").orderBy("timestamp", "desc").onSnapshot((snapshot) => {
                     let newOrders = [];
                     snapshot.forEach((doc) => {
                         newOrders.push({ firestoreId: doc.id, ...doc.data() });
                     });
                     
-                    // Si une nouvelle commande arrive, déclencher le bip sonore et la notification
                     if (newOrders.length > orders.length && orders.length > 0) {
                         playNotificationBeep();
                         showPushNotification(newOrders[0]);
@@ -296,62 +235,37 @@
         };
 
         function switchRole(role) {
+            const viewAgent = document.getElementById('view-agent');
+            const viewManager = document.getElementById('view-manager');
+            const btnAgent = document.getElementById('btn-role-agent');
+            const btnManager = document.getElementById('btn-role-manager');
+
             if (role === 'agent') {
-                document.getElementById('view-agent').classList.remove('hidden');
-                document.getElementById('view-manager').classList.add('hidden');
-                document.getElementById('btn-role-agent').className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md";
-                document.getElementById('btn-role-manager').className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white";
+                viewAgent.classList.remove('hidden');
+                viewManager.classList.add('hidden');
+                btnAgent.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md transition-all";
+                btnManager.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white transition-all";
             } else {
-                document.getElementById('view-manager').classList.remove('hidden');
-                document.getElementById('view-agent').classList.add('hidden');
-                document.getElementById('btn-role-manager').className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md";
-                document.getElementById('btn-role-agent').className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white";
+                viewManager.classList.remove('hidden');
+                viewAgent.classList.add('hidden');
+                btnManager.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md transition-all";
+                btnAgent.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white transition-all";
             }
         }
 
+        // FONCTION DE DÉVERROUILLAGE PIN CORRIGÉE ET SÉCURISÉE
         function verifyManagerPin() {
-            if (document.getElementById('manager-pin-input').value === "2256") {
-                document.getElementById('manager-lock-screen').classList.add('hidden');
-                document.getElementById('manager-unlocked-content').classList.remove('hidden');
+            const pinInput = document.getElementById('manager-pin-input');
+            const errorMsg = document.getElementById('pin-error-msg');
+            const lockScreen = document.getElementById('manager-lock-screen');
+            const unlockedContent = document.getElementById('manager-unlocked-content');
+
+            if (!pinInput) return;
+
+            if (pinInput.value === "2256") {
+                lockScreen.classList.add('hidden');
+                unlockedContent.classList.remove('hidden');
+                errorMsg.classList.add('hidden');
             } else {
-                document.getElementById('pin-error-msg').classList.remove('hidden');
-            }
-        }
-
-        function initAgentsSelect() {
-            const select = document.getElementById('agent-name-select');
-            select.innerHTML = "";
-            agents.forEach(a => {
-                select.innerHTML += `<option value="${a.name}" data-sector="${a.sector}">${a.name}</option>`;
-            });
-            onAgentSelectChange();
-        }
-
-        function onAgentSelectChange() {
-            const select = document.getElementById('agent-name-select');
-            const selectedOpt = select.options[select.selectedIndex];
-            if (selectedOpt) {
-                document.getElementById('agent-location-input').value = selectedOpt.getAttribute('data-sector') || '';
-            }
-        }
-
-        function renderCatalog() {
-            const grid = document.getElementById('products-grid');
-            grid.innerHTML = "";
-            catalog.forEach(p => {
-                const qty = cart[p.id] || 0;
-                grid.innerHTML += `
-                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between gap-4">
-                        <div class="flex items-start gap-3">
-                            <div class="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-xl">
-                                <i class="ph ${p.icon}"></i>
-                            </div>
-                            <div>
-                                <h4 class="font-bold text-slate-900 text-sm">${p.name}</h4>
-                                <p class="text-xs text-slate-400">${p.unit}</p>
-                            </div>
-                        </div>
-                        <div class="flex items-center justify-between pt-2 border-t border-slate-100">
-                            <div class="flex items-center gap-2">
-                                <button onclick="updateCart(${p.id}, -1)" class="w-8 h-8 rounded-xl bg-slate-100 font-bold">-</button>
-                                <span class="w-6 text-center font-bold text-sm
+                errorMsg.classList.remove('hidden');
+                pinInput.
