@@ -27,25 +27,49 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- SDKs Firebase (Version Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
     <style>
         body { font-family: 'Inter', sans-serif; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        @keyframes pulse-ring {
-            0% { transform: scale(0.95); opacity: 0.8; }
-            50% { transform: scale(1.05); opacity: 0.4; }
-            100% { transform: scale(0.95); opacity: 0.8; }
-        }
-        .pulse-ring { animation: pulse-ring 2s infinite ease-in-out; }
     </style>
 </head>
 <body class="h-full text-slate-800 flex flex-col antialiased selection:bg-teal-500 selection:text-white pb-16 md:pb-0">
 
-    <!-- TOP HEADER / NAV BAR -->
+    <!-- INITIALISATION FIREBASE AVEC VOS CLÉS -->
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyD2Efo5GxOd2UhOWapBtjJTOmS2gnaKkW4",
+            authDomain: "cleanlogixapp.firebaseapp.com",
+            projectId: "cleanlogixapp",
+            storageBucket: "cleanlogixapp.firebasestorage.app",
+            messagingSenderId: "244706789950",
+            appId: "1:244706789950:web:ebac4e7b5f9cef70b49f6f",
+            measurementId: "G-118254J5X4"
+        };
+
+        let db = null;
+        let isCloudConnected = false;
+
+        try {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+            isCloudConnected = true;
+            console.log("Connecté à la base de données Firebase CleanLogix !");
+        } catch (e) {
+            console.error("Erreur d'initialisation Firebase :", e);
+        }
+    </script>
+
+    <!-- HEADER / NAVIGATION -->
     <header class="bg-slate-900 text-white sticky top-0 z-40 shadow-lg">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
-                <!-- Logo & Title -->
+                <!-- Logo & Indicateur Cloud -->
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-400 flex items-center justify-center text-slate-900 font-bold text-xl shadow-lg shadow-teal-500/20">
                         <i class="ph-bold ph-sparkle text-2xl text-white"></i>
@@ -53,19 +77,19 @@
                     <div>
                         <h1 class="font-extrabold text-lg leading-tight tracking-tight">Clean<span class="text-teal-400">Logix</span></h1>
                         <p class="text-[11px] text-slate-400 flex items-center gap-1">
-                            <span id="sync-indicator-dot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                            <span id="sync-status-text">Cloud Synchronisé</span>
+                            <span id="sync-dot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span id="sync-status">Cloud Direct Connecté</span>
                         </p>
                     </div>
                 </div>
 
-                <!-- Role Switcher -->
+                <!-- Changement de Rôle -->
                 <div class="flex items-center gap-2 bg-slate-800 p-1 rounded-xl border border-slate-700/60">
-                    <button id="btn-role-agent" onclick="switchRole('agent')" class="flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200">
+                    <button id="btn-role-agent" onclick="switchRole('agent')" class="flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md transition-all">
                         <i class="ph text-base ph-broom"></i>
                         <span>Vue Agent</span>
                     </button>
-                    <button id="btn-role-manager" onclick="switchRole('manager')" class="relative flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200">
+                    <button id="btn-role-manager" onclick="switchRole('manager')" class="relative flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white transition-all">
                         <i class="ph text-base ph-clipboard-text"></i>
                         <span>Responsable</span>
                         <span id="nav-unread-badge" class="hidden absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-extrabold text-white shadow-md animate-bounce">0</span>
@@ -75,7 +99,7 @@
         </div>
     </header>
 
-    <!-- IN-APP PUSH NOTIFICATION POPUP -->
+    <!-- NOTIFICATION PUSH EN DIRECT -->
     <div id="push-notification" class="fixed top-20 right-4 left-4 sm:left-auto sm:w-96 z-50 transform translate-y-[-180%] transition-transform duration-500 ease-out pointer-events-none">
         <div class="bg-slate-900/95 backdrop-blur-md text-white p-4 rounded-2xl shadow-2xl border border-teal-500/40 flex gap-3.5 items-start pointer-events-auto">
             <div class="p-2.5 bg-teal-500/20 text-teal-400 rounded-xl flex-shrink-0">
@@ -92,9 +116,6 @@
                     <button onclick="switchRole('manager'); dismissPushNotification();" class="text-xs bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold px-3 py-1.5 rounded-lg transition-colors">
                         Ouvrir et préparer
                     </button>
-                    <button onclick="dismissPushNotification()" class="text-xs text-slate-400 hover:text-white px-2 py-1">
-                        Masquer
-                    </button>
                 </div>
             </div>
             <button onclick="dismissPushNotification()" class="text-slate-400 hover:text-white">
@@ -106,113 +127,81 @@
     <!-- MAIN WRAPPER -->
     <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
 
-        <!-- ========================================== -->
-        <!-- VIEW 1: VUE AGENT DE NETTOYAGE -->
-        <!-- ========================================== -->
+        <!-- VUE 1 : AGENT -->
         <div id="view-agent" class="space-y-6">
-            
-            <!-- Agent Header & Context -->
             <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
                         <i class="ph-duotone ph-hand-waving text-teal-600 text-2xl"></i>
                         Espace Agent de Propreté
                     </h2>
-                    <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Faites votre demande de réapprovisionnement. Le responsable sera notifié en direct.</p>
+                    <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Faites votre demande de réapprovisionnement. Le responsable la recevra en direct.</p>
                 </div>
 
-                <!-- Agent & Location Selector -->
                 <div class="flex flex-wrap sm:flex-nowrap items-center gap-3">
                     <div class="w-full sm:w-auto">
                         <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Agent Intervenant</label>
-                        <select id="agent-name-select" onchange="onAgentSelectChange()" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-teal-500 focus:border-teal-500 px-3 py-2 font-semibold">
-                            <!-- Populated dynamically -->
+                        <select id="agent-name-select" onchange="onAgentSelectChange()" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-3 py-2 font-semibold">
+                            <!-- Dynamique -->
                         </select>
                     </div>
 
                     <div class="w-full sm:w-auto">
-                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Zone / Bâtiment d'intervention</label>
-                        <input type="text" id="agent-location-input" placeholder="Ex: Bâtiment A - Étage 2" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-teal-500 focus:border-teal-500 px-3 py-2 font-medium">
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Zone d'intervention</label>
+                        <input type="text" id="agent-location-input" placeholder="Ex: Bâtiment A - Étage 2" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-3 py-2 font-medium">
                     </div>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- CATALOG (2 Cols) -->
+                <!-- CATALOGUE -->
                 <div class="lg:col-span-2 space-y-5">
-                    
-                    <!-- Search & Filter Bar -->
                     <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80 space-y-3">
                         <div class="relative">
                             <i class="ph ph-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg"></i>
-                            <input type="text" id="catalog-search" oninput="renderCatalog()" placeholder="Rechercher un produit (ex: Chiffon, Javel, Sacs...)" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all">
-                        </div>
-
-                        <!-- Category Filter Buttons -->
-                        <div class="flex items-center gap-2 overflow-x-auto pb-1 hide-scrollbar" id="category-pills">
-                            <button onclick="setCategoryFilter('all')" class="cat-pill active px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all bg-slate-900 text-white">Tous</button>
-                            <button onclick="setCategoryFilter('Sols & Surfaces')" class="cat-pill px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all bg-slate-100 text-slate-600 hover:bg-slate-200">Sols & Surfaces</button>
-                            <button onclick="setCategoryFilter('Équipement & Protection')" class="cat-pill px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all bg-slate-100 text-slate-600 hover:bg-slate-200">Protection & EPI</button>
-                            <button onclick="setCategoryFilter('Sanitaires & Hygiène')" class="cat-pill px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all bg-slate-100 text-slate-600 hover:bg-slate-200">Sanitaires</button>
-                            <button onclick="setCategoryFilter('Vitres & Spécifique')" class="cat-pill px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all bg-slate-100 text-slate-600 hover:bg-slate-200">Vitres</button>
+                            <input type="text" id="catalog-search" oninput="renderCatalog()" placeholder="Rechercher un produit..." class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none">
                         </div>
                     </div>
-
-                    <!-- Products Grid -->
                     <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <!-- Rendered dynamically -->
+                        <!-- Produits dynamiques -->
                     </div>
                 </div>
 
-                <!-- CART & CONFIRMATION (1 Col) -->
+                <!-- PANIER -->
                 <div class="lg:col-span-1">
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 sticky top-24 flex flex-col max-h-[calc(100vh-7rem)]">
                         <div class="flex items-center justify-between pb-4 border-b border-slate-100">
                             <h3 class="font-bold text-slate-900 flex items-center gap-2">
                                 <i class="ph-bold ph-shopping-cart text-teal-600 text-lg"></i>
-                                Votre Panier de Réappro
+                                Panier de Réappro
                             </h3>
                             <span id="cart-count-badge" class="bg-teal-50 text-teal-700 text-xs font-bold px-2.5 py-0.5 rounded-full border border-teal-200">0 article</span>
                         </div>
 
-                        <!-- Cart Items List -->
                         <div id="cart-items" class="flex-1 overflow-y-auto py-4 space-y-3 min-h-[160px]">
-                            <div id="cart-empty" class="h-full flex flex-col items-center justify-center text-center py-8 text-slate-400">
-                                <i class="ph-duotone ph-basket text-4xl mb-2 text-slate-300"></i>
-                                <p class="text-xs font-semibold">Panier vide</p>
-                                <p class="text-[11px] text-slate-400 mt-1">Sélectionnez vos produits dans le catalogue</p>
-                            </div>
+                            <!-- Contenu Panier -->
                         </div>
 
-                        <!-- Options Form -->
                         <div class="pt-4 border-t border-slate-100 space-y-4">
-                            <!-- Priority Level -->
                             <div>
-                                <label class="block text-xs font-bold text-slate-700 mb-1.5">Degré d'urgence :</label>
+                                <label class="block text-xs font-bold text-slate-700 mb-1.5">Urgence :</label>
                                 <div class="grid grid-cols-3 gap-2">
-                                    <label class="flex flex-col items-center justify-center p-2 rounded-xl border border-slate-200 text-xs font-semibold cursor-pointer hover:bg-slate-50 transition-colors has-[:checked]:border-teal-500 has-[:checked]:bg-teal-50 has-[:checked]:text-teal-900">
+                                    <label class="flex items-center justify-center p-2 rounded-xl border text-xs font-semibold cursor-pointer has-[:checked]:border-teal-500 has-[:checked]:bg-teal-50">
                                         <input type="radio" name="priority" value="Normal" checked class="sr-only">
                                         <span>Normal</span>
                                     </label>
-                                    <label class="flex flex-col items-center justify-center p-2 rounded-xl border border-slate-200 text-xs font-semibold cursor-pointer hover:bg-slate-50 transition-colors has-[:checked]:border-amber-500 has-[:checked]:bg-amber-50 has-[:checked]:text-amber-900">
+                                    <label class="flex items-center justify-center p-2 rounded-xl border text-xs font-semibold cursor-pointer has-[:checked]:border-amber-500 has-[:checked]:bg-amber-50">
                                         <input type="radio" name="priority" value="Urgent" class="sr-only">
                                         <span>Urgent</span>
                                     </label>
-                                    <label class="flex flex-col items-center justify-center p-2 rounded-xl border border-slate-200 text-xs font-semibold cursor-pointer hover:bg-slate-50 transition-colors has-[:checked]:border-rose-500 has-[:checked]:bg-rose-50 has-[:checked]:text-rose-900">
+                                    <label class="flex items-center justify-center p-2 rounded-xl border text-xs font-semibold cursor-pointer has-[:checked]:border-rose-500 has-[:checked]:bg-rose-50">
                                         <input type="radio" name="priority" value="Très Urgent" class="sr-only">
                                         <span class="text-rose-600">🚨 Critique</span>
                                     </label>
                                 </div>
                             </div>
 
-                            <!-- Note -->
-                            <div>
-                                <label class="block text-xs font-bold text-slate-700 mb-1">Commentaire (facultatif) :</label>
-                                <textarea id="order-note" rows="2" placeholder="Ex: Stock épuisé au rez-de-chaussée..." class="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:ring-teal-500 focus:border-teal-500 resize-none"></textarea>
-                            </div>
-
-                            <!-- Submit Button -->
-                            <button id="btn-submit-order" onclick="submitOrder()" disabled class="w-full bg-slate-200 text-slate-400 cursor-not-allowed font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all duration-200">
+                            <button id="btn-submit-order" onclick="submitOrder()" disabled class="w-full bg-slate-200 text-slate-400 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2">
                                 <i class="ph-bold ph-paper-plane-right text-lg"></i>
                                 <span>Envoyer au Responsable</span>
                             </button>
@@ -222,237 +211,118 @@
             </div>
         </div>
 
-        <!-- ========================================== -->
-        <!-- VIEW 2: VUE RESPONSABLE -->
-        <!-- ========================================== -->
+        <!-- VUE 2 : RESPONSABLE -->
         <div id="view-manager" class="hidden space-y-6">
-            
-            <!-- Pin Lock Screen (Default: 1234) -->
             <div id="manager-lock-screen" class="max-w-md mx-auto my-12 bg-white p-8 rounded-2xl shadow-xl border border-slate-200 text-center">
-                <div class="w-16 h-16 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner">
+                <div class="w-16 h-16 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
                     <i class="ph-bold ph-lock-key"></i>
                 </div>
-                <h2 class="text-xl font-extrabold text-slate-900">Espace Sécurisé Responsable</h2>
-                <p class="text-xs text-slate-500 mt-1 mb-6">Entrez le code PIN pour accéder au suivi des commandes et stocks (Code par défaut : <span class="font-bold text-slate-800">1234</span>)</p>
-                
-                <div class="flex justify-center gap-2 mb-4">
-                    <input type="password" id="manager-pin-input" maxlength="4" placeholder="••••" class="w-40 text-center text-2xl tracking-widest font-bold py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none">
-                </div>
-                <button onclick="verifyManagerPin()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl transition-all shadow-md">
-                    Déverrouiller le Dashboard
-                </button>
-                <p id="pin-error-msg" class="text-rose-500 text-xs font-semibold mt-3 hidden">Code PIN incorrect (Essayez 1234)</p>
+                <h2 class="text-xl font-extrabold text-slate-900">Espace Responsable</h2>
+                <p class="text-xs text-slate-500 mt-1 mb-6">Code PIN par défaut : <span class="font-bold text-slate-800">1234</span></p>
+                <input type="password" id="manager-pin-input" maxlength="4" placeholder="••••" class="w-40 text-center text-2xl font-bold py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none mb-4">
+                <button onclick="verifyManagerPin()" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl">Déverrouiller</button>
+                <p id="pin-error-msg" class="text-rose-500 text-xs font-semibold mt-3 hidden">Code PIN incorrect.</p>
             </div>
 
-            <!-- Dashboard Content (Unlocked) -->
             <div id="manager-unlocked-content" class="hidden space-y-6">
-                <!-- Dashboard Banner -->
-                <div class="bg-slate-900 text-white p-6 rounded-2xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
-                    <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-teal-500/10 rounded-full blur-2xl pointer-events-none"></div>
-
+                <div class="bg-slate-900 text-white p-6 rounded-2xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div>
-                        <div class="flex items-center gap-2 text-teal-400 text-xs font-bold uppercase tracking-wider mb-1">
-                            <i class="ph-fill ph-shield-check"></i> Dashboard Responsable Stock
-                        </div>
-                        <h2 class="text-2xl font-black tracking-tight">Suivi des Demandes en Direct</h2>
-                        <p class="text-slate-400 text-xs sm:text-sm mt-1">Gérez le réapprovisionnement et préparez les lots pour vos agents.</p>
+                        <h2 class="text-2xl font-black">Suivi des Demandes en Direct (Cloud)</h2>
+                        <p class="text-slate-400 text-xs sm:text-sm mt-1">Chaque commande passée par un agent apparaît ici en direct.</p>
                     </div>
-
-                    <!-- Stats Cards -->
                     <div class="flex items-center gap-3">
-                        <div class="bg-slate-800/80 border border-slate-700/60 p-3 rounded-xl text-center min-w-[85px]">
+                        <div class="bg-slate-800 p-3 rounded-xl text-center min-w-[85px]">
                             <span id="stat-pending" class="block text-2xl font-black text-amber-400">0</span>
-                            <span class="text-[10px] text-slate-400 font-semibold uppercase">À Traiter</span>
+                            <span class="text-[10px] text-slate-400 font-semibold">À Traiter</span>
                         </div>
-                        <div class="bg-slate-800/80 border border-slate-700/60 p-3 rounded-xl text-center min-w-[85px]">
-                            <span id="stat-preparing" class="block text-2xl font-black text-blue-400">0</span>
-                            <span class="text-[10px] text-slate-400 font-semibold uppercase">En Cours</span>
-                        </div>
-                        <div class="bg-slate-800/80 border border-slate-700/60 p-3 rounded-xl text-center min-w-[85px]">
+                        <div class="bg-slate-800 p-3 rounded-xl text-center min-w-[85px]">
                             <span id="stat-completed" class="block text-2xl font-black text-emerald-400">0</span>
-                            <span class="text-[10px] text-slate-400 font-semibold uppercase">Prêtes</span>
+                            <span class="text-[10px] text-slate-400 font-semibold">Prêtes</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Manager Navigation Tabs -->
-                <div class="flex border-b border-slate-200 space-x-4 bg-white px-4 rounded-xl shadow-sm">
-                    <button onclick="switchManagerTab('orders')" id="tab-btn-orders" class="py-3 px-4 text-xs sm:text-sm font-bold border-b-2 border-teal-600 text-teal-600 flex items-center gap-2">
-                        <i class="ph-bold ph-list-checks text-base"></i> Commandes Reçues
-                    </button>
-                    <button onclick="switchManagerTab('agents')" id="tab-btn-agents" class="py-3 px-4 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2">
-                        <i class="ph-bold ph-users text-base"></i> Gestion des Agents
-                    </button>
-                    <button onclick="switchManagerTab('products')" id="tab-btn-products" class="py-3 px-4 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2">
-                        <i class="ph-bold ph-package text-base"></i> Catalogue Produits
-                    </button>
-                </div>
-
-                <!-- TAB 1: ORDERS -->
-                <div id="mgr-tab-orders" class="space-y-4">
-                    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm">
-                        <div class="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto hide-scrollbar">
-                            <button onclick="setManagerFilter('all')" class="mgr-filter-btn active px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-slate-900 text-white">Toutes</button>
-                            <button onclick="setManagerFilter('En attente')" class="mgr-filter-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all bg-slate-100 text-slate-600 hover:bg-slate-200">En attente</button>
-                            <button onclick="setManagerFilter('En préparation')" class="mgr-filter-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all bg-slate-100 text-slate-600 hover:bg-slate-200">En préparation</button>
-                            <button onclick="setManagerFilter('Prête')" class="mgr-filter-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all bg-slate-100 text-slate-600 hover:bg-slate-200">Prêtes</button>
-                        </div>
-                        <button onclick="renderOrdersList()" class="text-xs font-semibold text-slate-600 hover:text-slate-900 flex items-center gap-1.5 bg-slate-100 px-3 py-2 rounded-xl">
-                            <i class="ph ph-arrows-clockwise text-sm"></i> Actualiser
-                        </button>
-                    </div>
-
-                    <div id="orders-list-container" class="space-y-4">
-                        <!-- Rendered dynamically -->
-                    </div>
-                </div>
-
-                <!-- TAB 2: AGENTS MANAGEMENT -->
-                <div id="mgr-tab-agents" class="hidden space-y-4">
-                    <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-                        <h3 class="font-bold text-slate-900 flex items-center gap-2">
-                            <i class="ph-bold ph-user-plus text-teal-600"></i> Ajouter un nouvel agent
-                        </h3>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <input type="text" id="new-agent-name" placeholder="Nom et Prénom (ex: Julie Bernard)" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm">
-                            <input type="text" id="new-agent-sector" placeholder="Secteur par défaut (ex: Bâtiment B - RDC)" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm">
-                        </div>
-                        <button onclick="addNewAgent()" class="bg-teal-600 hover:bg-teal-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-all shadow-sm">
-                            Enregistrer l'agent
-                        </button>
-                    </div>
-
-                    <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-                        <h3 class="font-bold text-slate-900">Agents enregistrés</h3>
-                        <div id="manager-agents-list" class="divide-y divide-slate-100">
-                            <!-- Rendered dynamically -->
-                        </div>
-                    </div>
-                </div>
-
-                <!-- TAB 3: PRODUCTS CATALOG MANAGEMENT -->
-                <div id="mgr-tab-products" class="hidden space-y-4">
-                    <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-                        <h3 class="font-bold text-slate-900 flex items-center gap-2">
-                            <i class="ph-bold ph-package text-teal-600"></i> Ajouter un produit au catalogue
-                        </h3>
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            <input type="text" id="new-prod-name" placeholder="Nom du produit" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm">
-                            <select id="new-prod-cat" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-medium">
-                                <option value="Sols & Surfaces">Sols & Surfaces</option>
-                                <option value="Équipement & Protection">Protection & EPI</option>
-                                <option value="Sanitaires & Hygiène">Sanitaires</option>
-                                <option value="Vitres & Spécifique">Vitres</option>
-                            </select>
-                            <input type="text" id="new-prod-unit" placeholder="Unité (ex: Bidon 5L, Carton...)" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm">
-                        </div>
-                        <button onclick="addNewProduct()" class="bg-teal-600 hover:bg-teal-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-all shadow-sm">
-                            Ajouter au catalogue
-                        </button>
-                    </div>
-
-                    <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-                        <h3 class="font-bold text-slate-900">Produits du Catalogue</h3>
-                        <div id="manager-products-list" class="divide-y divide-slate-100 max-h-96 overflow-y-auto">
-                            <!-- Rendered dynamically -->
-                        </div>
-                    </div>
+                <div id="orders-list-container" class="space-y-4">
+                    <!-- Liste des commandes reçues -->
                 </div>
             </div>
         </div>
     </main>
 
-    <!-- CORE LOGIC SCRIPT -->
+    <!-- LOGIQUE JS -->
     <script>
-        // --- DONNÉES INITIALES PAR DÉFAUT ---
         const INITIAL_PRODUCTS = [
             { id: 1, name: "Détergent sols concentré 5L", category: "Sols & Surfaces", unit: "Bidon 5L", icon: "ph-drop" },
             { id: 2, name: "Désinfectant multi-surfaces 750ml", category: "Sols & Surfaces", unit: "Flacon", icon: "ph-spray-bottle" },
-            { id: 3, name: "Chiffons microfibres pro (lot de 10)", category: "Équipement & Protection", unit: "Lot", icon: "ph-stack" },
-            { id: 4, name: "Gants nitrile jetables (Taille L)", category: "Équipement & Protection", unit: "Boîte de 100", icon: "ph-hand" },
-            { id: 5, name: "Gel détartrant sanitaires", category: "Sanitaires & Hygiène", unit: "Flacon 1L", icon: "ph-toilet" },
-            { id: 6, name: "Papier toilette rouleaux industriels", category: "Sanitaires & Hygiène", unit: "Colis de 12", icon: "ph-scroll" },
-            { id: 7, name: "Liquide lave-vitres professionnel", category: "Vitres & Spécifique", unit: "Bidon 5L", icon: "ph-window" },
-            { id: 8, name: "Sacs poubelle renforcés 100L", category: "Équipement & Protection", unit: "Rouleau de 25", icon: "ph-trash" }
+            { id: 3, name: "Chiffons microfibres pro (lot de 10)", category: "Protection & EPI", unit: "Lot", icon: "ph-stack" },
+            { id: 4, name: "Gants nitrile jetables (Taille L)", category: "Protection & EPI", unit: "Boîte de 100", icon: "ph-hand" },
+            { id: 5, name: "Gel détartrant sanitaires", category: "Sanitaires", unit: "Flacon 1L", icon: "ph-toilet" }
         ];
 
         const INITIAL_AGENTS = [
-            { id: 1, name: "Sophie Martin", sector: "Bâtiment A - Étage 1", active: true },
-            { id: 2, name: "Marc Leroy", sector: "Bâtiment B - RDC", active: true },
-            { id: 3, name: "Fatou Diallo", sector: "Zone Sanitaires & Vestiaires", active: true }
+            { id: 1, name: "Sophie Martin", sector: "Bâtiment A - Étage 1" },
+            { id: 2, name: "Marc Leroy", sector: "Bâtiment B - RDC" }
         ];
 
-        // --- ÉTAT GLOBAL DE L'APPLICATION ---
-        let catalog = JSON.parse(localStorage.getItem('cleanlogix_catalog')) || INITIAL_PRODUCTS;
-        let agents = JSON.parse(localStorage.getItem('cleanlogix_agents')) || INITIAL_AGENTS;
-        let orders = JSON.parse(localStorage.getItem('cleanlogix_orders')) || [];
-        
-        let cart = {}; // { productId: quantity }
-        let currentCategoryFilter = 'all';
-        let currentManagerFilter = 'all';
-        let lastKnownOrdersCount = orders.length;
+        let catalog = INITIAL_PRODUCTS;
+        let agents = INITIAL_AGENTS;
+        let orders = [];
+        let cart = {};
 
-        // --- INITIALISATION AU CHARGEMENT ---
         window.onload = function() {
             initAgentsSelect();
             renderCatalog();
             renderCart();
-            renderOrdersList();
-            updateStats();
-            checkUnreadBadge();
 
-            // Simulation écoute temps réel (toutes les 3 secondes pour vérifier de nouvelles commandes locales/cloud)
-            setInterval(checkForNewOrders, 3000);
+            if (isCloudConnected && db) {
+                // ÉCOUTE CLOUD EN TEMPS RÉEL DEPUIS FIREBASE
+                db.collection("orders").orderBy("timestamp", "desc").onSnapshot((snapshot) => {
+                    let newOrders = [];
+                    snapshot.forEach((doc) => {
+                        newOrders.push({ firestoreId: doc.id, ...doc.data() });
+                    });
+                    
+                    // Si une nouvelle commande arrive, déclencher le bip sonore et la notification
+                    if (newOrders.length > orders.length && orders.length > 0) {
+                        playNotificationBeep();
+                        showPushNotification(newOrders[0]);
+                    }
+                    
+                    orders = newOrders;
+                    renderOrdersList();
+                    updateStats();
+                });
+            }
         };
 
-        // --- GESTION DES RÔLES & VUES ---
         function switchRole(role) {
-            const btnAgent = document.getElementById('btn-role-agent');
-            const btnManager = document.getElementById('btn-role-manager');
-            const viewAgent = document.getElementById('view-agent');
-            const viewManager = document.getElementById('view-manager');
-
             if (role === 'agent') {
-                btnAgent.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md transition-all";
-                btnManager.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white transition-all";
-                viewAgent.classList.remove('hidden');
-                viewManager.classList.add('hidden');
+                document.getElementById('view-agent').classList.remove('hidden');
+                document.getElementById('view-manager').classList.add('hidden');
+                document.getElementById('btn-role-agent').className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md";
+                document.getElementById('btn-role-manager').className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white";
             } else {
-                btnManager.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md transition-all";
-                btnAgent.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white transition-all";
-                viewManager.classList.remove('hidden');
-                viewAgent.classList.add('hidden');
-                
-                // Masquer le badge non lu de la nav
-                document.getElementById('nav-unread-badge').classList.add('hidden');
+                document.getElementById('view-manager').classList.remove('hidden');
+                document.getElementById('view-agent').classList.add('hidden');
+                document.getElementById('btn-role-manager').className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md";
+                document.getElementById('btn-role-agent').className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white";
             }
         }
 
-        // --- CODE PIN RESPONSABLE ---
         function verifyManagerPin() {
-            const pin = document.getElementById('manager-pin-input').value;
-            const errorMsg = document.getElementById('pin-error-msg');
-            
-            if (pin === "2256") {
+            if (document.getElementById('manager-pin-input').value === "1234") {
                 document.getElementById('manager-lock-screen').classList.add('hidden');
                 document.getElementById('manager-unlocked-content').classList.remove('hidden');
-                renderManagerAgents();
-                renderManagerProducts();
             } else {
-                errorMsg.classList.remove('hidden');
+                document.getElementById('pin-error-msg').classList.remove('hidden');
             }
         }
 
-        // --- VUE AGENT : SÉLECTION AGENT & SECTEUR ---
         function initAgentsSelect() {
             const select = document.getElementById('agent-name-select');
             select.innerHTML = "";
-            agents.filter(a => a.active).forEach(agent => {
-                const opt = document.createElement('option');
-                opt.value = agent.name;
-                opt.setAttribute('data-sector', agent.sector);
-                opt.textContent = agent.name;
-                select.appendChild(opt);
+            agents.forEach(a => {
+                select.innerHTML += `<option value="${a.name}" data-sector="${a.sector}">${a.name}</option>`;
             });
             onAgentSelectChange();
         }
@@ -461,67 +331,31 @@
             const select = document.getElementById('agent-name-select');
             const selectedOpt = select.options[select.selectedIndex];
             if (selectedOpt) {
-                const sector = selectedOpt.getAttribute('data-sector');
-                document.getElementById('agent-location-input').value = sector || '';
+                document.getElementById('agent-location-input').value = selectedOpt.getAttribute('data-sector') || '';
             }
-        }
-
-        // --- CATALOGUE ET PANIER ---
-        function setCategoryFilter(category) {
-            currentCategoryFilter = category;
-            document.querySelectorAll('.cat-pill').forEach(btn => {
-                btn.className = "cat-pill px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all bg-slate-100 text-slate-600 hover:bg-slate-200";
-            });
-            event.target.className = "cat-pill active px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all bg-slate-900 text-white";
-            renderCatalog();
         }
 
         function renderCatalog() {
             const grid = document.getElementById('products-grid');
-            const searchVal = document.getElementById('catalog-search').value.toLowerCase();
             grid.innerHTML = "";
-
-            const filtered = catalog.filter(p => {
-                const matchCat = currentCategoryFilter === 'all' || p.category === currentCategoryFilter;
-                const matchSearch = p.name.toLowerCase().includes(searchVal);
-                return matchCat && matchSearch;
-            });
-
-            if (filtered.length === 0) {
-                grid.innerHTML = `
-                    <div class="col-span-full py-12 text-center text-slate-400 bg-white rounded-2xl border border-slate-200">
-                        <i class="ph-duotone ph-magnifying-glass text-3xl mb-1"></i>
-                        <p class="text-xs font-semibold">Aucun produit trouvé</p>
-                    </div>
-                `;
-                return;
-            }
-
-            filtered.forEach(product => {
-                const qtyInCart = cart[product.id] || 0;
+            catalog.forEach(p => {
+                const qty = cart[p.id] || 0;
                 grid.innerHTML += `
-                    <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between gap-4 transition-all hover:border-teal-500/50">
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between gap-4">
                         <div class="flex items-start gap-3">
-                            <div class="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-xl flex-shrink-0">
-                                <i class="ph ${product.icon || 'ph-package'}"></i>
+                            <div class="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-xl">
+                                <i class="ph ${p.icon}"></i>
                             </div>
-                            <div class="min-w-0 flex-1">
-                                <span class="text-[10px] font-bold text-teal-600 uppercase tracking-wide">${product.category}</span>
-                                <h4 class="font-bold text-slate-900 text-sm leading-snug truncate">${product.name}</h4>
-                                <p class="text-xs text-slate-400 mt-0.5">Unité : ${product.unit}</p>
+                            <div>
+                                <h4 class="font-bold text-slate-900 text-sm">${p.name}</h4>
+                                <p class="text-xs text-slate-400">${p.unit}</p>
                             </div>
                         </div>
-
                         <div class="flex items-center justify-between pt-2 border-t border-slate-100">
-                            <span class="text-xs font-medium text-slate-500">Quantité :</span>
                             <div class="flex items-center gap-2">
-                                <button onclick="updateCartQuantity(${product.id}, -1)" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold flex items-center justify-center transition-colors">
-                                    <i class="ph ph-minus text-xs"></i>
-                                </button>
-                                <span class="w-6 text-center font-bold text-sm text-slate-800">${qtyInCart}</span>
-                                <button onclick="updateCartQuantity(${product.id}, 1)" class="w-8 h-8 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold flex items-center justify-center transition-colors shadow-sm">
-                                    <i class="ph ph-plus text-xs"></i>
-                                </button>
+                                <button onclick="updateCart(${p.id}, -1)" class="w-8 h-8 rounded-xl bg-slate-100 font-bold">-</button>
+                                <span class="w-6 text-center font-bold text-sm">${qty}</span>
+                                <button onclick="updateCart(${p.id}, 1)" class="w-8 h-8 rounded-xl bg-teal-500 font-bold text-slate-950">+</button>
                             </div>
                         </div>
                     </div>
@@ -529,128 +363,108 @@
             });
         }
 
-        function updateCartQuantity(productId, delta) {
-            const current = cart[productId] || 0;
-            const updated = current + delta;
-            if (updated <= 0) {
-                delete cart[productId];
-            } else {
-                cart[productId] = updated;
-            }
+        function updateCart(id, delta) {
+            cart[id] = (cart[id] || 0) + delta;
+            if (cart[id] <= 0) delete cart[id];
             renderCatalog();
             renderCart();
         }
 
         function renderCart() {
             const container = document.getElementById('cart-items');
-            const emptyState = document.getElementById('cart-empty');
-            const countBadge = document.getElementById('cart-count-badge');
-            const submitBtn = document.getElementById('btn-submit-order');
+            const btn = document.getElementById('btn-submit-order');
+            const keys = Object.keys(cart);
+            container.innerHTML = "";
 
-            const itemIds = Object.keys(cart);
-            let totalItemsCount = 0;
-
-            if (itemIds.length === 0) {
-                container.innerHTML = `
-                    <div id="cart-empty" class="h-full flex flex-col items-center justify-center text-center py-8 text-slate-400">
-                        <i class="ph-duotone ph-basket text-4xl mb-2 text-slate-300"></i>
-                        <p class="text-xs font-semibold">Panier vide</p>
-                        <p class="text-[11px] text-slate-400 mt-1">Sélectionnez vos produits dans le catalogue</p>
-                    </div>
-                `;
-                countBadge.textContent = "0 article";
-                submitBtn.disabled = true;
-                submitBtn.className = "w-full bg-slate-200 text-slate-400 cursor-not-allowed font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all duration-200";
+            if (keys.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">Panier vide</p>`;
+                btn.disabled = true;
+                btn.className = "w-full bg-slate-200 text-slate-400 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2";
                 return;
             }
 
-            container.innerHTML = "";
-            itemIds.forEach(id => {
-                const product = catalog.find(p => p.id == id);
-                const qty = cart[id];
-                totalItemsCount += qty;
-
+            keys.forEach(id => {
+                const p = catalog.find(item => item.id == id);
                 container.innerHTML += `
-                    <div class="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                        <div class="min-w-0 flex-1">
-                            <h5 class="text-xs font-bold text-slate-800 truncate">${product.name}</h5>
-                            <span class="text-[10px] text-slate-400">Qté : <strong class="text-teal-600">${qty}</strong> ${product.unit}</span>
-                        </div>
-                        <button onclick="deleteCartItem(${id})" class="text-slate-400 hover:text-rose-500 p-1">
-                            <i class="ph ph-trash text-sm"></i>
-                        </button>
+                    <div class="flex justify-between items-center text-xs p-2 bg-slate-50 rounded-lg">
+                        <span class="font-bold text-slate-800">${p.name}</span>
+                        <span class="font-bold text-teal-600">x${cart[id]}</span>
                     </div>
                 `;
             });
-
-            countBadge.textContent = `${totalItemsCount} article${totalItemsCount > 1 ? 's' : ''}`;
-            submitBtn.disabled = false;
-            submitBtn.className = "w-full bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all duration-200 shadow-lg shadow-teal-500/20 cursor-pointer";
+            btn.disabled = false;
+            btn.className = "w-full bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-teal-500/20";
         }
 
-        function deleteCartItem(productId) {
-            delete cart[productId];
-            renderCatalog();
-            renderCart();
-        }
-
-        // --- SOUMISSION DE COMMANDE ---
-        function submitOrder() {
-            const agentName = document.getElementById('agent-name-select').value;
-            const location = document.getElementById('agent-location-input').value.trim();
+        async function submitOrder() {
+            const agent = document.getElementById('agent-name-select').value;
+            const location = document.getElementById('agent-location-input').value;
             const priority = document.querySelector('input[name="priority"]:checked').value;
-            const note = document.getElementById('order-note').value.trim();
 
-            if (!agentName || Object.keys(cart).length === 0) return;
-
-            const orderItems = Object.keys(cart).map(id => {
-                const product = catalog.find(p => p.id == id);
-                return {
-                    name: product.name,
-                    quantity: cart[id],
-                    unit: product.unit
-                };
+            const items = Object.keys(cart).map(id => {
+                const p = catalog.find(item => item.id == id);
+                return { name: p.name, quantity: cart[id], unit: p.unit };
             });
 
             const newOrder = {
-                id: 'ORD-' + Math.floor(100000 + Math.random() * 900000),
-                agent: agentName,
-                location: location || "Non spécifié",
+                agent: agent,
+                location: location,
                 priority: priority,
-                note: note,
-                items: orderItems,
-                status: 'En attente',
-                timestamp: new Date().toISOString()
+                items: items,
+                status: "En attente",
+                timestamp: Date.now()
             };
 
-            orders.unshift(newOrder);
-            localStorage.setItem('cleanlogix_orders', JSON.stringify(orders));
+            if (isCloudConnected && db) {
+                // Envoi direct dans la base de données Cloud Firebase
+                await db.collection("orders").add(newOrder);
+            }
 
-            // Réinitialiser le panier
             cart = {};
-            document.getElementById('order-note').value = "";
             renderCatalog();
             renderCart();
-            renderOrdersList();
-            updateStats();
-
-            // Notification visuelle de succès agent
-            alert("Votre commande a été transmise avec succès au responsable de réserve !");
+            alert("Commande transmise avec succès sur le Cloud !");
         }
 
-        // --- SYNCHRONISATION ET NOTIFICATIONS EN TEMPS RÉEL ---
-        function checkForNewOrders() {
-            const storedOrders = JSON.parse(localStorage.getItem('cleanlogix_orders')) || [];
-            if (storedOrders.length > orders.length) {
-                orders = storedOrders;
-                renderOrdersList();
-                updateStats();
-                checkUnreadBadge();
+        function renderOrdersList() {
+            const container = document.getElementById('orders-list-container');
+            container.innerHTML = "";
 
-                // Déclencher alerte sonore douce (Web Audio API) et popup push
-                playNotificationBeep();
-                showPushNotification(orders[0]);
+            if (orders.length === 0) {
+                container.innerHTML = `<div class="bg-white p-8 rounded-2xl text-center text-slate-400">Aucune commande reçue.</div>`;
+                return;
             }
+
+            orders.forEach(o => {
+                let itemsList = o.items.map(i => `<li class="text-xs text-slate-700 font-medium">• ${i.name} : <strong>x${i.quantity} ${i.unit}</strong></li>`).join('');
+                container.innerHTML += `
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="font-bold text-slate-900">${o.agent}</h4>
+                                <p class="text-xs text-slate-400">${o.location}</p>
+                            </div>
+                            <span class="text-xs font-bold px-2.5 py-1 rounded-full ${o.priority === 'Urgent' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'}">${o.priority}</span>
+                        </div>
+                        <ul class="bg-slate-50 p-3 rounded-xl space-y-1">${itemsList}</ul>
+                        <div class="flex justify-between items-center pt-2">
+                            <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full">${o.status}</span>
+                            <button onclick="updateStatus('${o.firestoreId}', 'Prête')" class="text-xs bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-xl">Marquer Prête</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        async function updateStatus(id, newStatus) {
+            if (isCloudConnected && db && id) {
+                await db.collection("orders").doc(id).update({ status: newStatus });
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('stat-pending').textContent = orders.filter(o => o.status === 'En attente').length;
+            document.getElementById('stat-completed').textContent = orders.filter(o => o.status === 'Prête').length;
         }
 
         function playNotificationBeep() {
@@ -659,273 +473,25 @@
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // Note D5
-                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                osc.frequency.setValueAtTime(587.33, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
                 osc.start();
-                osc.stop(audioCtx.currentTime + 0.25);
-            } catch (e) {
-                // Audio autoplay restrictions bypass
-            }
+                osc.stop(audioCtx.currentTime + 0.3);
+            } catch(e) {}
         }
 
         function showPushNotification(order) {
             const popup = document.getElementById('push-notification');
             document.getElementById('push-title').textContent = `${order.agent} (${order.priority})`;
-            document.getElementById('push-body').textContent = `${order.location} - ${order.items.length} article(s) demandé(s).`;
-            
+            document.getElementById('push-body').textContent = `${order.location} - Nouvelle commande reçue.`;
             popup.classList.remove('translate-y-[-180%]');
-            setTimeout(() => {
-                dismissPushNotification();
-            }, 6000);
+            setTimeout(() => { dismissPushNotification(); }, 5000);
         }
 
         function dismissPushNotification() {
-            const popup = document.getElementById('push-notification');
-            popup.classList.add('translate-y-[-180%]');
-        }
-
-        function checkUnreadBadge() {
-            const pendingCount = orders.filter(o => o.status === 'En attente').length;
-            const badge = document.getElementById('nav-unread-badge');
-            if (pendingCount > 0) {
-                badge.textContent = pendingCount;
-                badge.classList.remove('hidden');
-            } else {
-                badge.classList.add('hidden');
-            }
-        }
-
-        // --- ESPACE RESPONSABLE : GESTION DES COMMANDES ---
-        function switchManagerTab(tabName) {
-            const tabOrders = document.getElementById('mgr-tab-orders');
-            const tabAgents = document.getElementById('mgr-tab-agents');
-            const tabProducts = document.getElementById('mgr-tab-products');
-            
-            const btnOrders = document.getElementById('tab-btn-orders');
-            const btnAgents = document.getElementById('tab-btn-agents');
-            const btnProducts = document.getElementById('tab-btn-products');
-
-            tabOrders.classList.add('hidden');
-            tabAgents.classList.add('hidden');
-            tabProducts.classList.add('hidden');
-            
-            btnOrders.className = "py-3 px-4 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2";
-            btnAgents.className = "py-3 px-4 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2";
-            btnProducts.className = "py-3 px-4 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2";
-
-            if (tabName === 'orders') {
-                tabOrders.classList.remove('hidden');
-                btnOrders.className = "py-3 px-4 text-xs sm:text-sm font-bold border-b-2 border-teal-600 text-teal-600 flex items-center gap-2";
-            } else if (tabName === 'agents') {
-                tabAgents.classList.remove('hidden');
-                btnAgents.className = "py-3 px-4 text-xs sm:text-sm font-bold border-b-2 border-teal-600 text-teal-600 flex items-center gap-2";
-            } else if (tabName === 'products') {
-                tabProducts.classList.remove('hidden');
-                btnProducts.className = "py-3 px-4 text-xs sm:text-sm font-bold border-b-2 border-teal-600 text-teal-600 flex items-center gap-2";
-            }
-        }
-
-        function setManagerFilter(filter) {
-            currentManagerFilter = filter;
-            document.querySelectorAll('.mgr-filter-btn').forEach(btn => {
-                btn.className = "mgr-filter-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all bg-slate-100 text-slate-600 hover:bg-slate-200";
-            });
-            event.target.className = "mgr-filter-btn px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-slate-900 text-white";
-            renderOrdersList();
-        }
-
-        function renderOrdersList() {
-            const container = document.getElementById('orders-list-container');
-            container.innerHTML = "";
-
-            const filtered = orders.filter(o => {
-                if (currentManagerFilter === 'all') return true;
-                return o.status === currentManagerFilter;
-            });
-
-            if (filtered.length === 0) {
-                container.innerHTML = `
-                    <div class="bg-white p-12 rounded-2xl text-center border border-slate-200 text-slate-400">
-                        <i class="ph-duotone ph-clipboard-text text-4xl mb-2"></i>
-                        <p class="text-sm font-semibold">Aucune commande trouvée</p>
-                    </div>
-                `;
-                return;
-            }
-
-            filtered.forEach(order => {
-                const dateFormatted = new Date(order.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                
-                let priorityBadge = '';
-                if (order.priority === 'Urgent') priorityBadge = '<span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full">Urgent</span>';
-                else if (order.priority === 'Très Urgent') priorityBadge = '<span class="bg-rose-100 text-rose-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full">🚨 Critique</span>';
-                else priorityBadge = '<span class="bg-slate-100 text-slate-700 text-[10px] font-bold px-2.5 py-0.5 rounded-full">Normal</span>';
-
-                let statusBadge = '';
-                if (order.status === 'En attente') statusBadge = '<span class="bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold px-3 py-1 rounded-full">En attente</span>';
-                else if (order.status === 'En préparation') statusBadge = '<span class="bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold px-3 py-1 rounded-full">En préparation</span>';
-                else statusBadge = '<span class="bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold px-3 py-1 rounded-full">Prête / Livrée</span>';
-
-                let itemsHtml = order.items.map(i => `
-                    <li class="flex items-center justify-between text-xs py-1.5 border-b border-slate-100 last:border-0">
-                        <span class="font-medium text-slate-800">${i.name}</span>
-                        <span class="font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-lg">x${i.quantity} ${i.unit}</span>
-                    </li>
-                `).join('');
-
-                container.innerHTML += `
-                    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
-                            <div>
-                                <div class="flex items-center gap-2">
-                                    <span class="font-black text-slate-900 text-sm">${order.agent}</span>
-                                    ${priorityBadge}
-                                </div>
-                                <p class="text-xs text-slate-400 mt-0.5 flex items-center gap-1.5">
-                                    <i class="ph ph-map-pin"></i> ${order.location} • <i class="ph ph-clock"></i> ${dateFormatted}
-                                </p>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                ${statusBadge}
-                            </div>
-                        </div>
-
-                        ${order.note ? `<div class="bg-amber-50/60 border border-amber-200/60 p-2.5 rounded-xl text-xs text-amber-900"><strong>Note :</strong> ${order.note}</div>` : ''}
-
-                        <div>
-                            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wide block mb-1">Articles demandés :</span>
-                            <ul class="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                                ${itemsHtml}
-                            </ul>
-                        </div>
-
-                        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-                            <button onclick="updateOrderStatus('${order.id}', 'En attente')" class="px-3 py-1.5 text-xs font-semibold rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700">En attente</button>
-                            <button onclick="updateOrderStatus('${order.id}', 'En préparation')" class="px-3 py-1.5 text-xs font-semibold rounded-xl bg-blue-500 hover:bg-blue-600 text-white shadow-sm">Préparer</button>
-                            <button onclick="updateOrderStatus('${order.id}', 'Prête')" class="px-3 py-1.5 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm">Marquer prête</button>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-
-        function updateOrderStatus(orderId, newStatus) {
-            const index = orders.findIndex(o => o.id === orderId);
-            if (index !== -1) {
-                orders[index].status = newStatus;
-                localStorage.setItem('cleanlogix_orders', JSON.stringify(orders));
-                renderOrdersList();
-                updateStats();
-                checkUnreadBadge();
-            }
-        }
-
-        function updateStats() {
-            document.getElementById('stat-pending').textContent = orders.filter(o => o.status === 'En attente').length;
-            document.getElementById('stat-preparing').textContent = orders.filter(o => o.status === 'En préparation').length;
-            document.getElementById('stat-completed').textContent = orders.filter(o => o.status === 'Prête').length;
-        }
-
-        // --- GESTION DES AGENTS (ADMIN) ---
-        function renderManagerAgents() {
-            const container = document.getElementById('manager-agents-list');
-            container.innerHTML = "";
-
-            agents.forEach((agent, index) => {
-                container.innerHTML += `
-                    py-3 flex items-center justify-between text-sm">
-                        <div>
-                            <h5 class="font-bold text-slate-900">${agent.name}</h5>
-                            <span class="text-xs text-slate-400">Secteur : ${agent.sector}</span>
-                        </div>
-                        <button onclick="removeAgent(${index})" class="text-rose-500 hover:text-rose-700 p-2">
-                            <i class="ph ph-trash text-base"></i>
-                        </button>
-                    </div>
-                `;
-            });
-        }
-
-        function addNewAgent() {
-            const name = document.getElementById('new-agent-name').value.trim();
-            const sector = document.getElementById('new-agent-sector').value.trim();
-
-            if (!name || !sector) {
-                alert("Veuillez remplir tous les champs de l'agent.");
-                return;
-            }
-
-            agents.push({ id: Date.now(), name, sector, active: true });
-            localStorage.setItem('cleanlogix_agents', JSON.stringify(agents));
-            
-            document.getElementById('new-agent-name').value = "";
-            document.getElementById('new-agent-sector').value = "";
-            
-            renderManagerAgents();
-            initAgentsSelect();
-            alert("Agent ajouté avec succès !");
-        }
-
-        function removeAgent(index) {
-            agents.splice(index, 1);
-            localStorage.setItem('cleanlogix_agents', JSON.stringify(agents));
-            renderManagerAgents();
-            initAgentsSelect();
-        }
-
-        // --- GESTION DU CATALOGUE (ADMIN) ---
-        function renderManagerProducts() {
-            const container = document.getElementById('manager-products-list');
-            container.innerHTML = "";
-
-            catalog.forEach((prod, index) => {
-                container.innerHTML += `
-                    <div class="py-3 flex items-center justify-between text-sm">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center text-base">
-                                <i class="ph ${prod.icon || 'ph-package'}"></i>
-                            </div>
-                            <div>
-                                <h5 class="font-bold text-slate-900">${prod.name}</h5>
-                                <span class="text-xs text-slate-400">${prod.category} • ${prod.unit}</span>
-                            </div>
-                        </div>
-                        <button onclick="removeProduct(${index})" class="text-rose-500 hover:text-rose-700 p-2">
-                            <i class="ph ph-trash text-base"></i>
-                        </button>
-                    </div>
-                `;
-            });
-        }
-
-        function addNewProduct() {
-            const name = document.getElementById('new-prod-name').value.trim();
-            const category = document.getElementById('new-prod-cat').value;
-            const unit = document.getElementById('new-prod-unit').value.trim();
-
-            if (!name || !unit) {
-                alert("Veuillez remplir tous les champs du produit.");
-                return;
-            }
-
-            catalog.push({ id: Date.now(), name, category, unit, icon: 'ph-package' });
-            localStorage.setItem('cleanlogix_catalog', JSON.stringify(catalog));
-
-            document.getElementById('new-prod-name').value = "";
-            document.getElementById('new-prod-unit').value = "";
-
-            renderManagerProducts();
-            renderCatalog();
-            alert("Produit ajouté au catalogue !");
-        }
-
-        function removeProduct(index) {
-            catalog.splice(index, 1);
-            localStorage.setItem('cleanlogix_catalog', JSON.stringify(catalog));
-            renderManagerProducts();
-            renderCatalog();
+            document.getElementById('push-notification').classList.add('translate-y-[-180%]');
         }
     </script>
 </body>
