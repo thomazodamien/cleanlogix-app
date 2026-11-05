@@ -1,271 +1,609 @@
 <!DOCTYPE html>
-<html lang="fr" class="h-full bg-slate-50">
+<html lang="fr" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CleanLogix Realtime - Gestion & Réapprovisionnement</title>
-    <!-- Tailwind CSS -->
+    <title>Gestion des Commandes - Produits Ménagers</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        teal: {
-                            50: '#f0fdfa',
-                            100: '#ccfbf1',
-                            500: '#14b8a6',
-                            600: '#0d9488',
-                            700: '#0f766e',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Phosphor Icons -->
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- FontAwesome pour les icônes -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- SDKs Firebase (Version Compat) -->
+    <!-- Firebase SDKs (Compat version pour intégration simple en un seul fichier) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-    </style>
 </head>
-<body class="h-full text-slate-800 flex flex-col antialiased selection:bg-teal-500 selection:text-white pb-16 md:pb-0">
+<body class="bg-slate-100 h-full flex flex-col font-sans text-slate-800">
 
-    <!-- INITIALISATION FIREBASE -->
+    <!-- CONFIGURATION FIREBASE (Remplacez par vos clés ou collez-les-moi pour que je le fasse) -->
     <script>
         const firebaseConfig = {
-            apiKey: "AIzaSyD2Efo5GxOd2UhOWapBtjJTOmS2gnaKkW4",
-            authDomain: "cleanlogixapp.firebaseapp.com",
-            projectId: "cleanlogixapp",
-            storageBucket: "cleanlogixapp.firebasestorage.app",
-            messagingSenderId: "244706789950",
-            appId: "1:244706789950:web:ebac4e7b5f9cef70b49f6f",
-            measurementId: "G-118254J5X4"
+            apiKey: "VOTRE_API_KEY",
+            authDomain: "VOTRE_AUTH_DOMAIN",
+            projectId: "VOTRE_PROJECT_ID",
+            storageBucket: "VOTRE_STORAGE_BUCKET",
+            messagingSenderId: "VOTRE_MESSAGING_SENDER_ID",
+            appId: "VOTRE_APP_ID"
         };
 
+        // Initialisation Firebase (bascule automatique sur localStorage si non configuré)
         let db = null;
-        let isCloudConnected = false;
-
+        let useFirebase = false;
         try {
-            firebase.initializeApp(firebaseConfig);
-            db = firebase.firestore();
-            isCloudConnected = true;
-            console.log("Firebase connecté avec succès !");
+            if (firebaseConfig.apiKey !== "VOTRE_API_KEY") {
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                useFirebase = true;
+                console.log("Firebase connecté avec succès !");
+            } else {
+                console.log("Mode LocalStorage actif (Firebase non configuré)");
+            }
         } catch (e) {
-            console.error("Erreur Firebase :", e);
+            console.error("Erreur d'initialisation Firebase, bascule en local :", e);
         }
     </script>
 
     <!-- HEADER / NAVIGATION -->
-    <header class="bg-slate-900 text-white sticky top-0 z-40 shadow-lg">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-400 flex items-center justify-center text-slate-900 font-bold text-xl shadow-lg">
-                        <i class="ph-bold ph-sparkle text-2xl text-white"></i>
-                    </div>
-                    <div>
-                        <h1 class="font-extrabold text-lg leading-tight tracking-tight">Clean<span class="text-teal-400">Logix</span></h1>
-                        <p class="text-[11px] text-slate-400 flex items-center gap-1">
-                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                            <span>Cloud Direct Connecté</span>
-                        </p>
-                    </div>
-                </div>
-
-                <div class="flex items-center gap-2 bg-slate-800 p-1 rounded-xl border border-slate-700/60">
-    <button onclick="switchRole('agent')" class="px-4 py-1.5 rounded-lg text-xs font-semibold bg-teal-500 text-slate-950 transition-all" id="tab-agent">
-        Agent
-    </button>
-    <button onclick="switchRole('manager')" class="px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white transition-all" id="tab-manager">
-        Responsable
-    </button>
-</div>
+    <header class="bg-indigo-600 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-broom-ball text-xl"></i>
+                <h1 class="font-bold text-lg">CleanOrder Pro</h1>
+            </div>
+            <div class="flex space-x-2">
+                <button onclick="switchView('agent')" id="btn-view-agent" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-indigo-700 text-white transition">
+                    <i class="fa-solid fa-user-pen mr-1"></i> Agent
+                </button>
+                <button onclick="switchView('manager')" id="btn-view-manager" class="px-3 py-1.5 rounded-lg text-sm font-medium text-indigo-200 hover:bg-indigo-700 transition">
+                    <i class="fa-solid fa-screwdriver-wrench mr-1"></i> Responsable
+                </button>
             </div>
         </div>
     </header>
 
-    <!-- NOTIFICATION PUSH -->
-    <div id="push-notification" class="fixed top-20 right-4 left-4 sm:left-auto sm:w-96 z-50 transform translate-y-[-180%] transition-transform duration-500 ease-out pointer-events-none">
-        <div class="bg-slate-900/95 backdrop-blur-md text-white p-4 rounded-2xl shadow-2xl border border-teal-500/40 flex gap-3.5 items-start pointer-events-auto">
-            <div class="p-2.5 bg-teal-500/20 text-teal-400 rounded-xl flex-shrink-0">
-                <i class="ph-fill ph-bell-ringing text-2xl animate-pulse"></i>
-            </div>
-            <div class="flex-1 min-w-0">
-                <span class="text-[10px] font-bold text-teal-400 uppercase tracking-wider">Nouvelle Commande !</span>
-                <h4 id="push-title" class="text-sm font-bold text-white mt-0.5 truncate">Commande reçue</h4>
-                <p id="push-body" class="text-xs text-slate-300 mt-1">Détails de la commande...</p>
-            </div>
-            <button onclick="dismissPushNotification()" class="text-slate-400 hover:text-white">
-                <i class="ph ph-x text-lg"></i>
-            </button>
-        </div>
-    </div>
+    <!-- CONTENEUR PRINCIPAL -->
+    <main class="flex-1 max-w-4xl w-full mx-auto p-4 overflow-y-auto pb-20">
 
-    <!-- MAIN -->
-    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+        <!-- ================= VUE AGENT ================= -->
+        <div id="view-agent" class="space-y-4">
+            <!-- Sélection de l'agent -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Identifiant Agent :</label>
+                <select id="agent-select" onchange="onAgentSelectChange()" class="w-full p-2.5 border border-slate-300 rounded-lg bg-slate-50 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    <option value="">-- Sélectionnez votre nom --</option>
+                </select>
+            </div>
 
-        <!-- VUE AGENT -->
-        <div id="view-agent" class="space-y-6">
-            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <!-- Secteur & Urgence -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
-                        <i class="ph-duotone ph-hand-waving text-teal-600 text-2xl"></i>
-                        Espace Agent de Propreté
-                    </h2>
-                    <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Faites votre demande de réapprovisionnement.</p>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Secteur / Bâtiment :</label>
+                    <input type="text" id="order-sector" placeholder="Ex: Bâtiment A - Étage 2" class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                 </div>
-
-                <div class="flex flex-wrap sm:flex-nowrap items-center gap-3">
-                    <div>
-                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Agent Intervenant</label>
-                        <select id="agent-name-select" onchange="onAgentSelectChange()" class="bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-3 py-2 font-semibold">
-                            <option value="Sophie Martin" data-sector="Bâtiment A - Étage 1">Sophie Martin</option>
-                            <option value="Marc Leroy" data-sector="Bâtiment B - RDC">Marc Leroy</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Zone d'intervention</label>
-                        <input type="text" id="agent-location-input" value="Bâtiment A - Étage 1" class="bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-3 py-2 font-medium">
-                    </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Niveau d'urgence :</label>
+                    <select id="order-urgency" class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <option value="Normal">Normal (prochaine tournée)</option>
+                        <option value="Urgent">Urgent (besoin rapide)</option>
+                    </select>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="lg:col-span-2 space-y-5">
-                    <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <!-- Généré par JS -->
-                    </div>
+            <!-- Catalogue Produits -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-2">
+                    <h2 class="font-bold text-slate-800 text-base"><i class="fa-solid fa-boxes-stacked mr-2 text-indigo-600"></i>Catalogue de Produits</h2>
+                    <input type="text" id="search-product" placeholder="Rechercher un produit..." oninput="renderCatalog()" class="w-full sm:w-64 p-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                 </div>
 
-                <div class="lg:col-span-1">
-                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 sticky top-24 flex flex-col">
-                        <h3 class="font-bold text-slate-900 flex items-center gap-2 pb-4 border-b border-slate-100">
-                            <i class="ph-bold ph-shopping-cart text-teal-600 text-lg"></i> Panier de Réappro
-                        </h3>
-                        <div id="cart-items" class="py-4 space-y-3 min-h-[120px]">
-                            <p class="text-xs text-slate-400 text-center py-4">Panier vide</p>
-                        </div>
-                        <button id="btn-submit-order" onclick="submitOrder()" disabled class="w-full bg-slate-200 text-slate-400 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2">
-                            <span>Envoyer au Responsable</span>
-                        </button>
-                    </div>
+                <!-- Filtres Catégories -->
+                <div class="flex overflow-x-auto space-x-2 pb-2 mb-3 text-sm scrollbar-none">
+                    <button onclick="filterCategory('Tous')" id="cat-Tous" class="cat-btn px-3 py-1 rounded-full bg-indigo-600 text-white whitespace-nowrap">Tous</button>
+                    <button onclick="filterCategory('Sols')" id="cat-Sols" class="cat-btn px-3 py-1 rounded-full bg-slate-200 text-slate-700 whitespace-nowrap">Sols</button>
+                    <button onclick="filterCategory('Surfaces')" id="cat-Surfaces" class="cat-btn px-3 py-1 rounded-full bg-slate-200 text-slate-700 whitespace-nowrap">Surfaces</button>
+                    <button onclick="filterCategory('Désinfectants')" id="cat-Désinfectants" class="cat-btn px-3 py-1 rounded-full bg-slate-200 text-slate-700 whitespace-nowrap">Désinfectants</button>
+                    <button onclick="filterCategory('Matériel')" id="cat-Matériel" class="cat-btn px-3 py-1 rounded-full bg-slate-200 text-slate-700 whitespace-nowrap">Matériel</button>
+                    <button onclick="filterCategory('EPI')" id="cat-EPI" class="cat-btn px-3 py-1 rounded-full bg-slate-200 text-slate-700 whitespace-nowrap">EPI</button>
                 </div>
+
+                <!-- Liste des Produits -->
+                <div id="catalog-list" class="divide-y divide-slate-100 max-h-96 overflow-y-auto pr-1">
+                    <!-- Généré dynamiquement -->
+                </div>
+            </div>
+
+            <!-- Panier Actuel -->
+            <div class="bg-indigo-50 border border-indigo-200 p-4 rounded-xl shadow-sm">
+                <h3 class="font-bold text-indigo-900 mb-3 flex items-center justify-between">
+                    <span><i class="fa-solid fa-cart-shopping mr-2"></i>Mon Panier de Commande</span>
+                    <span id="cart-count" class="bg-indigo-600 text-white text-xs px-2 py-0.5 rounded-full">0 article</span>
+                </h3>
+                <div id="cart-items" class="space-y-2 mb-4 max-h-48 overflow-y-auto">
+                    <p class="text-xs text-indigo-500 italic">Aucun produit sélectionné pour le moment.</p>
+                </div>
+                <button onclick="submitOrder()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 rounded-lg shadow transition flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-paper-plane"></i>
+                    <span>Valider et envoyer la commande</span>
+                </button>
             </div>
         </div>
 
-        <!-- VUE RESPONSABLE -->
-        <div id="view-manager" class="hidden space-y-6">
+        <!-- ================= VUE RESPONSABLE ================= -->
+        <div id="view-manager" class="hidden space-y-4">
             <!-- Écran de verrouillage PIN -->
-            <div id="manager-lock-screen" class="max-w-md mx-auto my-12 bg-white p-8 rounded-2xl shadow-xl border border-slate-200 text-center">
-                <div class="w-16 h-16 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
-                    <i class="ph-bold ph-lock-key"></i>
+            <div id="manager-lock" class="bg-white p-8 rounded-xl shadow-sm border border-slate-200 text-center max-w-md mx-auto my-12">
+                <div class="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                    <i class="fa-solid fa-lock"></i>
                 </div>
-                <h2 class="text-xl font-extrabold text-slate-900">Espace Responsable</h2>
-                <p class="text-xs text-slate-500 mt-1 mb-6">Entrez le code PIN (Par défaut : <span class="font-bold text-slate-800">1234</span>)</p>
-                <input type="password" id="manager-pin-input" maxlength="4" placeholder="••••" class="w-40 text-center text-2xl font-bold py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none mb-4 tracking-widest">
-                <br>
-                <button onclick="verifyManagerPin()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl transition-all shadow-md cursor-pointer">
-                    Déverrouiller
-                </button>
-                <p id="pin-error-msg" class="text-rose-500 text-xs font-semibold mt-3 hidden">Code PIN incorrect (Essayez 1234)</p>
+                <h2 class="font-bold text-xl mb-2">Espace Réservé au Responsable</h2>
+                <p class="text-sm text-slate-500 mb-6">Veuillez saisir le code PIN de sécurité (Par défaut : 1234)</p>
+                <input type="password" id="pin-input" maxlength="4" placeholder="••••" class="w-32 text-center text-2xl tracking-widest p-2 border border-slate-300 rounded-lg mb-4 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                <div>
+                    <button onclick="checkPin()" class="bg-indigo-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-indigo-700 transition">Déverrouiller</button>
+                </div>
+                <p id="pin-error" class="text-rose-500 text-xs mt-3 hidden">Code PIN incorrect.</p>
             </div>
 
             <!-- Contenu Responsable Déverrouillé -->
-            <div id="manager-unlocked-content" class="hidden space-y-6">
-                <div class="bg-slate-900 text-white p-6 rounded-2xl shadow-xl flex justify-between items-center">
-                    <div>
-                        <h2 class="text-2xl font-black">Suivi des Demandes en Direct</h2>
-                        <p class="text-slate-400 text-xs mt-1">Commandes synchronisées via le Cloud.</p>
+            <div id="manager-content" class="hidden space-y-4">
+                <!-- Onglets Responsable -->
+                <div class="flex space-x-2 border-b border-slate-200 pb-2">
+                    <button onclick="switchManagerTab('orders')" id="m-tab-orders" class="px-4 py-2 rounded-lg text-sm font-semibold bg-indigo-600 text-white transition">Commandes</button>
+                    <button onclick="switchManagerTab('catalog')" id="m-tab-catalog" class="px-4 py-2 rounded-lg text-sm font-semibold bg-slate-200 text-slate-700 transition">Gérer le Catalogue</button>
+                    <button onclick="switchManagerTab('agents')" id="m-tab-agents" class="px-4 py-2 rounded-lg text-sm font-semibold bg-slate-200 text-slate-700 transition">Gérer les Agents</button>
+                </div>
+
+                <!-- Tab Commandes -->
+                <div id="manager-orders-section" class="space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-bold text-base text-slate-800"><i class="fa-solid fa-clipboard-list mr-2 text-indigo-600"></i>Commandes Reçues en Temps Réel</h3>
+                        <button onclick="loadOrders()" class="text-xs bg-slate-200 hover:bg-slate-300 px-3 py-1.5 rounded-lg transition"><i class="fa-solid fa-rotate mr-1"></i> Actualiser</button>
                     </div>
-                    <div class="bg-slate-800 p-3 rounded-xl text-center min-w-[85px]">
-                        <span id="stat-pending" class="block text-2xl font-black text-amber-400">0</span>
-                        <span class="text-[10px] text-slate-400 font-semibold uppercase">À Traiter</span>
+                    <div id="orders-container" class="space-y-3">
+                        <!-- Commandes dynamiques -->
                     </div>
                 </div>
 
-                <div id="orders-list-container" class="space-y-4">
-                    <!-- Commandes -->
+                <!-- Tab Catalogue -->
+                <div id="manager-catalog-section" class="hidden space-y-4">
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                        <h3 class="font-bold text-sm text-slate-800 mb-3"><i class="fa-solid fa-plus-circle mr-2 text-indigo-600"></i>Ajouter un nouveau produit</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                            <input type="text" id="new-prod-name" placeholder="Nom du produit" class="p-2 border border-slate-300 rounded-lg text-sm">
+                            <select id="new-prod-cat" class="p-2 border border-slate-300 rounded-lg text-sm">
+                                <option value="Sols">Sols</option>
+                                <option value="Surfaces">Surfaces</option>
+                                <option value="Désinfectants">Désinfectants</option>
+                                <option value="Matériel">Matériel</option>
+                                <option value="EPI">EPI</option>
+                            </select>
+                            <input type="text" id="new-prod-unit" placeholder="Unité (ex: Bidon 5L, Carton)" class="p-2 border border-slate-300 rounded-lg text-sm">
+                        </div>
+                        <button onclick="addProduct()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">Ajouter au catalogue</button>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                        <h3 class="font-bold text-sm text-slate-800 mb-3">Produits existants</h3>
+                        <div id="manager-catalog-list" class="divide-y divide-slate-100 max-h-64 overflow-y-auto"></div>
+                    </div>
+                </div>
+
+                <!-- Tab Agents -->
+                <div id="manager-agents-section" class="hidden space-y-4">
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                        <h3 class="font-bold text-sm text-slate-800 mb-3"><i class="fa-solid fa-user-plus mr-2 text-indigo-600"></i>Ajouter un agent</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                            <input type="text" id="new-agent-name" placeholder="Nom complet" class="p-2 border border-slate-300 rounded-lg text-sm">
+                            <input type="text" id="new-agent-sector" placeholder="Secteur par défaut" class="p-2 border border-slate-300 rounded-lg text-sm">
+                        </div>
+                        <button onclick="addAgent()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">Enregistrer l'agent</button>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                        <h3 class="font-bold text-sm text-slate-800 mb-3">Liste des agents</h3>
+                        <div id="manager-agents-list" class="divide-y divide-slate-100 max-h-64 overflow-y-auto"></div>
+                    </div>
                 </div>
             </div>
         </div>
     </main>
 
-    <!-- LOGIQUE JAVASCRIPT CORRIGÉE -->
+    <!-- BANNIÈRE NOTIFICATION PUSH FLOTTANTE -->
+    <div id="push-banner" class="fixed bottom-4 right-4 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl border border-slate-700 transform translate-y-32 opacity-0 transition-all duration-300 z-50 flex items-center space-x-3 max-w-sm">
+        <div class="bg-indigo-600 p-2 rounded-lg text-white"><i class="fa-solid fa-bell text-lg"></i></div>
+        <div>
+            <h4 class="font-bold text-sm" id="push-title">Nouvelle commande !</h4>
+            <p class="text-xs text-slate-300" id="push-desc">Un agent vient de passer commande.</p>
+        </div>
+    </div>
+
+    <!-- LOGIQUE JS APPLICATION -->
     <script>
-        const catalog = [
-            { id: 1, name: "Détergent sols concentré 5L", unit: "Bidon 5L", icon: "ph-drop" },
-            { id: 2, name: "Désinfectant multi-surfaces 750ml", unit: "Flacon", icon: "ph-spray-bottle" },
-            { id: 3, name: "Chiffons microfibres pro", unit: "Lot de 10", icon: "ph-stack" },
-            { id: 4, name: "Gants nitrile jetables", unit: "Boîte de 100", icon: "ph-hand" }
+        // Données par défaut initiales
+        let defaultProducts = [
+            { id: 1, name: "Détergent sols surpuissant 5L", category: "Sols", unit: "Bidon" },
+            { id: 2, name: "Désinfectant multi-surfaces 750ml", category: "Surfaces", unit: "Flacon" },
+            { id: 3, name: "Javel pastilles effervescentes", category: "Désinfectants", unit: "Boîte" },
+            { id: 4, name: "Chiffons microfibres pro", category: "Matériel", unit: "Lot de 10" },
+            { id: 5, name: "Gants nitrile jetables (Taille L)", category: "EPI", unit: "Boîte de 100" },
+            { id: 6, name: "Liquide détartrant sanitaires", category: "Désinfectants", unit: "Bidon 1L" }
         ];
 
-        let cart = {};
-        let orders = [];
+        let defaultAgents = [
+            { id: 1, name: "Sophie Martin", sector: "Bâtiment A - Étage 1", active: true },
+            { id: 2, name: "Marc Leroy", sector: "Bâtiment B - RDC", active: true },
+            { id: 3, name: "Fatou Diallo", sector: "Zone Sanitaires & Vestiaires", active: true }
+        ];
 
+        // Charger depuis localStorage ou initialiser
+        let catalog = JSON.parse(localStorage.getItem('clean_catalog')) || defaultProducts;
+        let agents = JSON.parse(localStorage.getItem('clean_agents')) || defaultAgents;
+        let cart = {};
+        let activeCategory = "Tous";
+        let orders = JSON.parse(localStorage.getItem('clean_orders')) || [];
+
+        // Initialisation de l'application au chargement
         window.onload = function() {
+            initAgentsDropdown();
             renderCatalog();
             
-            if (isCloudConnected && db) {
+            if (useFirebase) {
+                // Écoute en temps réel avec Firebase Firestore
                 db.collection("orders").orderBy("timestamp", "desc").onSnapshot((snapshot) => {
-                    let newOrders = [];
+                    orders = [];
                     snapshot.forEach((doc) => {
-                        newOrders.push({ firestoreId: doc.id, ...doc.data() });
+                        orders.push({ id: doc.id, ...doc.data() });
                     });
-                    
-                    if (newOrders.length > orders.length && orders.length > 0) {
-                        playNotificationBeep();
-                        showPushNotification(newOrders[0]);
-                    }
-                    
-                    orders = newOrders;
-                    renderOrdersList();
-                    updateStats();
+                    localStorage.setItem('clean_orders', JSON.stringify(orders));
+                    renderOrders();
+                }, (error) => {
+                    console.error("Erreur d'écoute Firestore :", error);
                 });
+            } else {
+                renderOrders();
             }
         };
 
-        function switchRole(role) {
-    const viewAgent = document.getElementById('view-agent');
-    const viewManager = document.getElementById('view-manager');
-    const tabAgent = document.getElementById('tab-agent');
-    const tabManager = document.getElementById('tab-manager');
-
-    if (!viewAgent || !viewManager) return;
-
-    if (role === 'agent') {
-        viewAgent.classList.remove('hidden');
-        viewManager.classList.add('hidden');
-        if(tabAgent) tabAgent.className = "px-4 py-1.5 rounded-lg text-xs font-semibold bg-teal-500 text-slate-950 transition-all";
-        if(tabManager) tabManager.className = "px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white transition-all";
-    } else {
-        viewManager.classList.remove('hidden');
-        viewAgent.classList.add('hidden');
-        if(tabManager) tabManager.className = "px-4 py-1.5 rounded-lg text-xs font-semibold bg-teal-500 text-slate-950 transition-all";
-        if(tabAgent) tabAgent.className = "px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white transition-all";
-    }
-}
-
-        // FONCTION DE DÉVERROUILLAGE PIN CORRIGÉE ET SÉCURISÉE
-        function verifyManagerPin() {
-            const pinInput = document.getElementById('manager-pin-input');
-            const errorMsg = document.getElementById('pin-error-msg');
-            const lockScreen = document.getElementById('manager-lock-screen');
-            const unlockedContent = document.getElementById('manager-unlocked-content');
-
-            if (!pinInput) return;
-
-            if (pinInput.value === "2256") {
-                lockScreen.classList.add('hidden');
-                unlockedContent.classList.remove('hidden');
-                errorMsg.classList.add('hidden');
+        // Navigation Vues
+        function switchView(view) {
+            if (view === 'agent') {
+                document.getElementById('view-agent').classList.remove('hidden');
+                document.getElementById('view-manager').classList.add('hidden');
+                document.getElementById('btn-view-agent').className = "px-3 py-1.5 rounded-lg text-sm font-medium bg-indigo-700 text-white transition";
+                document.getElementById('btn-view-manager').className = "px-3 py-1.5 rounded-lg text-sm font-medium text-indigo-200 hover:bg-indigo-700 transition";
             } else {
-                errorMsg.classList.remove('hidden');
-                pinInput.
+                document.getElementById('view-agent').classList.add('hidden');
+                document.getElementById('view-manager').classList.remove('hidden');
+                document.getElementById('btn-view-manager').className = "px-3 py-1.5 rounded-lg text-sm font-medium bg-indigo-700 text-white transition";
+                document.getElementById('btn-view-agent').className = "px-3 py-1.5 rounded-lg text-sm font-medium text-indigo-200 hover:bg-indigo-700 transition";
+            }
+        }
+
+        // Code PIN Manager
+        function checkPin() {
+            const pin = document.getElementById('pin-input').value;
+            if (pin === "1234") {
+                document.getElementById('manager-lock').classList.add('hidden');
+                document.getElementById('manager-content').classList.remove('hidden');
+                renderManagerCatalog();
+                renderManagerAgents();
+                renderOrders();
+            } else {
+                document.getElementById('pin-error').classList.remove('hidden');
+            }
+        }
+
+        function switchManagerTab(tab) {
+            document.getElementById('manager-orders-section').classList.add('hidden');
+            document.getElementById('manager-catalog-section').classList.add('hidden');
+            document.getElementById('manager-agents-section').classList.add('hidden');
+            document.getElementById('m-tab-orders').className = "px-4 py-2 rounded-lg text-sm font-semibold bg-slate-200 text-slate-700 transition";
+            document.getElementById('m-tab-catalog').className = "px-4 py-2 rounded-lg text-sm font-semibold bg-slate-200 text-slate-700 transition";
+            document.getElementById('m-tab-agents').className = "px-4 py-2 rounded-lg text-sm font-semibold bg-slate-200 text-slate-700 transition";
+
+            if (tab === 'orders') {
+                document.getElementById('manager-orders-section').classList.remove('hidden');
+                document.getElementById('m-tab-orders').className = "px-4 py-2 rounded-lg text-sm font-semibold bg-indigo-600 text-white transition";
+            } else if (tab === 'catalog') {
+                document.getElementById('manager-catalog-section').classList.remove('hidden');
+                document.getElementById('m-tab-catalog').className = "px-4 py-2 rounded-lg text-sm font-semibold bg-indigo-600 text-white transition";
+            } else if (tab === 'agents') {
+                document.getElementById('manager-agents-section').classList.remove('hidden');
+                document.getElementById('m-tab-agents').className = "px-4 py-2 rounded-lg text-sm font-semibold bg-indigo-600 text-white transition";
+            }
+        }
+
+        // Gestion Dropdown Agents
+        function initAgentsDropdown() {
+            const select = document.getElementById('agent-select');
+            select.innerHTML = '<option value="">-- Sélectionnez votre nom --</option>';
+            agents.filter(a => a.active).forEach(agent => {
+                select.innerHTML += `<option value="${agent.name}" data-sector="${agent.sector}">${agent.name}</option>`;
+            });
+        }
+
+        function onAgentSelectChange() {
+            const select = document.getElementById('agent-select');
+            const selectedOpt = select.options[select.selectedIndex];
+            const sector = selectedOpt.getAttribute('data-sector');
+            if (sector) {
+                document.getElementById('order-sector').value = sector;
+            }
+        }
+
+        // Rendu Catalogue Agent
+        function filterCategory(cat) {
+            activeCategory = cat;
+            document.querySelectorAll('.cat-btn').forEach(btn => {
+                btn.className = "cat-btn px-3 py-1 rounded-full bg-slate-200 text-slate-700 whitespace-nowrap";
+            });
+            document.getElementById('cat-' + cat).className = "cat-btn px-3 py-1 rounded-full bg-indigo-600 text-white whitespace-nowrap";
+            renderCatalog();
+        }
+
+        function renderCatalog() {
+            const search = document.getElementById('search-product').value.toLowerCase();
+            const container = document.getElementById('catalog-list');
+            container.innerHTML = "";
+
+            const filtered = catalog.filter(p => {
+                const matchCat = activeCategory === 'Tous' || p.category === activeCategory;
+                const matchSearch = p.name.toLowerCase().includes(search);
+                return matchCat && matchSearch;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<p class="text-sm text-slate-400 py-4 text-center">Aucun produit trouvé.</p>`;
+                return;
+            }
+
+            filtered.forEach(p => {
+                const qty = cart[p.id] || 0;
+                container.innerHTML += `
+                    <div class="py-3 flex items-center justify-between">
+                        <div>
+                            <h4 class="font-medium text-sm text-slate-800">${p.name}</h4>
+                            <span class="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded">${p.category} • ${p.unit}</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button onclick="updateCart(${p.id}, -1)" class="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 flex items-center justify-center font-bold text-slate-700">-</button>
+                            <span class="w-6 text-center text-sm font-semibold">${qty}</span>
+                            <button onclick="updateCart(${p.id}, 1)" class="w-8 h-8 rounded-lg bg-indigo-600 hover:bg-indigo-700 flex items-center justify-center font-bold text-white">+</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function updateCart(productId, delta) {
+            cart[productId] = (cart[productId] || 0) + delta;
+            if (cart[productId] <= 0) delete cart[productId];
+            renderCatalog();
+            renderCartSummary();
+        }
+
+        function renderCartSummary() {
+            const container = document.getElementById('cart-items');
+            const countBadge = document.getElementById('cart-count');
+            container.innerHTML = "";
+
+            const keys = Object.keys(cart);
+            let totalItems = 0;
+
+            if (keys.length === 0) {
+                container.innerHTML = `<p class="text-xs text-indigo-500 italic">Aucun produit sélectionné pour le moment.</p>`;
+                countBadge.innerText = `0 article`;
+                return;
+            }
+
+            keys.forEach(id => {
+                const product = catalog.find(p => p.id == id);
+                const qty = cart[id];
+                totalItems += qty;
+                container.innerHTML += `
+                    <div class="flex justify-between items-center text-xs text-indigo-900 bg-white/60 p-2 rounded-lg">
+                        <span class="font-medium">${product.name}</span>
+                        <span class="font-bold">x${qty} ${product.unit}</span>
+                    </div>
+                `;
+            });
+            countBadge.innerText = `${totalItems} article(s)`;
+        }
+
+        // Soumission de Commande
+        async function submitOrder() {
+            const agentName = document.getElementById('agent-select').value;
+            const sector = document.getElementById('order-sector').value;
+            const urgency = document.getElementById('order-urgency').value;
+
+            if (!agentName) {
+                alert("Veuillez sélectionner votre nom d'agent.");
+                return;
+            }
+            if (Object.keys(cart).length === 0) {
+                alert("Votre panier est vide.");
+                return;
+            }
+
+            const itemsList = Object.keys(cart).map(id => {
+                const p = catalog.find(prod => prod.id == id);
+                return { name: p.name, qty: cart[id], unit: p.unit };
+            });
+
+            const newOrder = {
+                agent: agentName,
+                sector: sector || "Non spécifié",
+                urgency: urgency,
+                items: itemsList,
+                status: "En attente",
+                timestamp: Date.now()
+            };
+
+            if (useFirebase && db) {
+                try {
+                    await db.collection("orders").add(newOrder);
+                } catch (e) {
+                    console.error("Erreur d'envoi Firestore :", e);
+                    fallbackSaveOrderLocally(newOrder);
+                }
+            } else {
+                fallbackSaveOrderLocally(newOrder);
+            }
+
+            // Reset panier
+            cart = {};
+            renderCatalog();
+            renderCartSummary();
+            alert("Commande envoyée avec succès au responsable !");
+        }
+
+        function fallbackSaveOrderLocally(order) {
+            order.id = 'local_' + Date.now();
+            orders.unshift(order);
+            localStorage.setItem('clean_orders', JSON.stringify(orders));
+            renderOrders();
+            triggerSoundAndBanner(order);
+        }
+
+        // Rendu Commandes Responsable
+        function renderOrders() {
+            const container = document.getElementById('orders-container');
+            if (!container) return;
+            container.innerHTML = "";
+
+            if (orders.length === 0) {
+                container.innerHTML = `<p class="text-sm text-slate-400 py-6 text-center bg-white rounded-xl border border-slate-200">Aucune commande pour le moment.</p>`;
+                return;
+            }
+
+            orders.forEach((o, index) => {
+                const dateStr = new Date(o.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const urgencyClass = o.urgency === 'Urgent' ? 'bg-rose-100 text-rose-700 border-rose-200' : 'bg-slate-100 text-slate-700 border-slate-200';
+                
+                let itemsHtml = o.items.map(i => `<li class="text-xs text-slate-600">• ${i.name} : <strong class="text-slate-800">${i.qty} ${i.unit}</strong></li>`).join('');
+
+                container.innerHTML += `
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-2">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="font-bold text-slate-800 text-sm">${o.agent}</span>
+                                <p class="text-xs text-slate-500"><i class="fa-solid fa-location-dot mr-1"></i>${o.sector} • <i class="fa-regular fa-clock ml-1"></i>${dateStr}</p>
+                            </div>
+                            <span class="text-xs px-2.5 py-1 rounded-full font-semibold border ${urgencyClass}">${o.urgency}</span>
+                        </div>
+                        <ul class="bg-slate-50 p-2.5 rounded-lg space-y-1">${itemsHtml}</ul>
+                        <div class="flex justify-between items-center pt-2">
+                            <span class="text-xs font-semibold px-2 py-0.5 rounded ${o.status === 'En attente' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}">${o.status}</span>
+                            <div class="space-x-1">
+                                <button onclick="updateOrderStatus(${index}, 'En préparation')" class="text-xs bg-amber-500 hover:bg-amber-600 text-white px-2.5 py-1 rounded">Préparer</button>
+                                <button onclick="updateOrderStatus(${index}, 'Prête / Livrée')" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded">Terminer</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function updateOrderStatus(index, newStatus) {
+            orders[index].status = newStatus;
+            localStorage.setItem('clean_orders', JSON.stringify(orders));
+            renderOrders();
+        }
+
+        // Gestion Catalogue admin
+        function renderManagerCatalog() {
+            const list = document.getElementById('manager-catalog-list');
+            list.innerHTML = "";
+            catalog.forEach((p, idx) => {
+                list.innerHTML += `
+                    <div class="py-2.5 flex justify-between items-center text-sm">
+                        <div>
+                            <span class="font-medium text-slate-800">${p.name}</span>
+                            <span class="text-xs text-slate-500 block">${p.category} • ${p.unit}</span>
+                        </div>
+                        <button onclick="deleteProduct(${idx})" class="text-rose-500 hover:text-rose-700 text-xs"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                `;
+            });
+        }
+
+        function addProduct() {
+            const name = document.getElementById('new-prod-name').value;
+            const category = document.getElementById('new-prod-cat').value;
+            const unit = document.getElementById('new-prod-unit').value;
+            if (!name || !unit) { alert("Veuillez remplir tous les champs."); return; }
+            catalog.push({ id: Date.now(), name, category, unit });
+            localStorage.setItem('clean_catalog', JSON.stringify(catalog));
+            document.getElementById('new-prod-name').value = "";
+            document.getElementById('new-prod-unit').value = "";
+            renderManagerCatalog();
+            renderCatalog();
+        }
+
+        function deleteProduct(idx) {
+            catalog.splice(idx, 1);
+            localStorage.setItem('clean_catalog', JSON.stringify(catalog));
+            renderManagerCatalog();
+            renderCatalog();
+        }
+
+        // Gestion Agents admin
+        function renderManagerAgents() {
+            const list = document.getElementById('manager-agents-list');
+            list.innerHTML = "";
+            agents.forEach((a, idx) => {
+                list.innerHTML += `
+                    <div class="py-2.5 flex justify-between items-center text-sm">
+                        <div>
+                            <span class="font-medium text-slate-800">${a.name}</span>
+                            <span class="text-xs text-slate-500 block">${a.sector}</span>
+                        </div>
+                        <button onclick="deleteAgent(${idx})" class="text-rose-500 hover:text-rose-700 text-xs"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                `;
+            });
+        }
+
+        function addAgent() {
+            const name = document.getElementById('new-agent-name').value;
+            const sector = document.getElementById('new-agent-sector').value;
+            if (!name || !sector) { alert("Veuillez remplir tous les champs."); return; }
+            agents.push({ id: Date.now(), name, sector, active: true });
+            localStorage.setItem('clean_agents', JSON.stringify(agents));
+            document.getElementById('new-agent-name').value = "";
+            document.getElementById('new-agent-sector').value = "";
+            renderManagerAgents();
+            initAgentsDropdown();
+        }
+
+        function deleteAgent(idx) {
+            agents.splice(idx, 1);
+            localStorage.setItem('clean_agents', JSON.stringify(agents));
+            renderManagerAgents();
+            initAgentsDropdown();
+        }
+
+        // Simulation sonore et banner notification
+        function triggerSoundAndBanner(order) {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+                gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.3);
+            } catch(e) {}
+
+            const banner = document.getElementById('push-banner');
+            document.getElementById('push-title').innerText = `Nouvelle commande de ${order.agent}`;
+            document.getElementById('push-desc').innerText = `${order.sector} (${order.urgency})`;
+            banner.classList.remove('translate-y-32', 'opacity-0');
+            setTimeout(() => {
+                banner.classList.add('translate-y-32', 'opacity-0');
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
