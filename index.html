@@ -229,8 +229,8 @@
             <div id="manager-unlocked-content" class="hidden space-y-6">
                 <div class="bg-slate-900 text-white p-6 rounded-2xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div>
-                        <h2 class="text-2xl font-black">Suivi des Demandes & Administration</h2>
-                        <p class="text-slate-400 text-xs sm:text-sm mt-1">Gérez vos commandes, ajoutez vos agents et vos produits.</p>
+                        <h2 class="text-2xl font-black">Suivi des Demandes & Administration Cloud</h2>
+                        <p class="text-slate-400 text-xs sm:text-sm mt-1">Gérez vos commandes, ajoutez vos agents et vos produits en temps réel.</p>
                     </div>
                     <div class="flex items-center gap-3">
                         <div class="bg-slate-800 p-3 rounded-xl text-center min-w-[85px]">
@@ -249,7 +249,7 @@
                     <!-- Gestion des Agents -->
                     <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                         <h3 class="font-bold text-slate-900 flex items-center gap-2">
-                            <i class="ph-bold ph-users text-teal-600 text-lg"></i> Gestion des Agents
+                            <i class="ph-bold ph-users text-teal-600 text-lg"></i> Gestion des Agents (Cloud)
                         </h3>
                         <div class="space-y-2">
                             <input type="text" id="new-agent-name" placeholder="Nom de l'agent (ex: Thomas B.)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none">
@@ -264,7 +264,7 @@
                     <!-- Gestion des Produits -->
                     <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                         <h3 class="font-bold text-slate-900 flex items-center gap-2">
-                            <i class="ph-bold ph-package text-teal-600 text-lg"></i> Catalogue des Produits
+                            <i class="ph-bold ph-package text-teal-600 text-lg"></i> Catalogue des Produits (Cloud)
                         </h3>
                         <div class="space-y-2">
                             <input type="text" id="new-prod-name" placeholder="Nom du produit" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none">
@@ -291,30 +291,32 @@
     <!-- LOGIQUE JS -->
     <script>
         const DEFAULT_PRODUCTS = [
-            { id: 1, name: "Détergent sols concentré 5L", unit: "Bidon 5L", icon: "ph-drop" },
-            { id: 2, name: "Désinfectant multi-surfaces 750ml", unit: "Flacon", icon: "ph-spray-bottle" },
-            { id: 3, name: "Chiffons microfibres pro", unit: "Lot de 10", icon: "ph-stack" },
-            { id: 4, name: "Gants nitrile jetables", unit: "Boîte de 100", icon: "ph-hand" },
-            { id: 5, name: "Gel détartrant sanitaires", unit: "Flacon 1L", icon: "ph-toilet" }
+            { name: "Détergent sols concentré 5L", unit: "Bidon 5L", icon: "ph-drop" },
+            { name: "Désinfectant multi-surfaces 750ml", unit: "Flacon", icon: "ph-spray-bottle" },
+            { name: "Chiffons microfibres pro", unit: "Lot de 10", icon: "ph-stack" },
+            { name: "Gants nitrile jetables", unit: "Boîte de 100", icon: "ph-hand" },
+            { name: "Gel détartrant sanitaires", unit: "Flacon 1L", icon: "ph-toilet" }
         ];
 
         const DEFAULT_AGENTS = [
-            { id: 1, name: "Sophie Martin", sector: "Bâtiment A - Étage 1" },
-            { id: 2, name: "Marc Leroy", sector: "Bâtiment B - RDC" }
+            { name: "Sophie Martin", sector: "Bâtiment A - Étage 1" },
+            { name: "Marc Leroy", sector: "Bâtiment B - RDC" }
         ];
 
-        let catalog = JSON.parse(localStorage.getItem('cleanlogix_catalog')) || DEFAULT_PRODUCTS;
-        let agents = JSON.parse(localStorage.getItem('cleanlogix_agents')) || DEFAULT_AGENTS;
+        let catalog = [];
+        let agents = [];
         let orders = [];
         let cart = {};
 
         window.onload = function() {
-            initAgentsSelect();
-            renderCatalog();
+            initCloudSync();
             renderCart();
-            renderManagerManagementLists();
+        };
 
+        // SYNCHRONISATION CLOUD EN TEMPS RÉEL (Commandes, Agents, Produits)
+        function initCloudSync() {
             if (isCloudConnected && db) {
+                // 1. Écoute commandes
                 db.collection("orders").orderBy("timestamp", "desc").onSnapshot((snapshot) => {
                     let newOrders = [];
                     snapshot.forEach((doc) => {
@@ -330,8 +332,45 @@
                     renderOrdersList();
                     updateStats();
                 });
+
+                // 2. Écoute agents
+                db.collection("agents").onSnapshot((snapshot) => {
+                    agents = [];
+                    if (snapshot.empty) {
+                        // Initialisation automatique si vide
+                        DEFAULT_AGENTS.forEach(a => db.collection("agents").add(a));
+                    } else {
+                        snapshot.forEach((doc) => {
+                            agents.push({ firestoreId: doc.id, ...doc.data() });
+                        });
+                    }
+                    initAgentsSelect();
+                    renderManagerManagementLists();
+                });
+
+                // 3. Écoute catalogue produits
+                db.collection("catalog").onSnapshot((snapshot) => {
+                    catalog = [];
+                    if (snapshot.empty) {
+                        // Initialisation automatique si vide
+                        DEFAULT_PRODUCTS.forEach(p => db.collection("catalog").add(p));
+                    } else {
+                        snapshot.forEach((doc) => {
+                            catalog.push({ firestoreId: doc.id, ...doc.data() });
+                        });
+                    }
+                    renderCatalog();
+                    renderManagerManagementLists();
+                });
+            } else {
+                // Mode local de secours
+                catalog = DEFAULT_PRODUCTS.map((p, index) => ({ firestoreId: index, ...p }));
+                agents = DEFAULT_AGENTS.map((a, index) => ({ firestoreId: index, ...a }));
+                initAgentsSelect();
+                renderCatalog();
+                renderManagerManagementLists();
             }
-        };
+        }
 
         function switchRole(role) {
             const viewAgent = document.getElementById('view-agent');
@@ -406,7 +445,7 @@
             }
 
             filtered.forEach(p => {
-                const qty = cart[p.id] || 0;
+                const qty = cart[p.firestoreId] || 0;
                 grid.innerHTML += `
                     <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between gap-4">
                         <div class="flex items-start gap-3">
@@ -420,9 +459,9 @@
                         </div>
                         <div class="flex items-center justify-between pt-2 border-t border-slate-100">
                             <div class="flex items-center gap-2">
-                                <button onclick="updateCart(${p.id}, -1)" class="w-8 h-8 rounded-xl bg-slate-100 font-bold">-</button>
+                                <button onclick="updateCart('${p.firestoreId}', -1)" class="w-8 h-8 rounded-xl bg-slate-100 font-bold">-</button>
                                 <span class="w-6 text-center font-bold text-sm">${qty}</span>
-                                <button onclick="updateCart(${p.id}, 1)" class="w-8 h-8 rounded-xl bg-teal-500 font-bold text-slate-950">+</button>
+                                <button onclick="updateCart('${p.firestoreId}', 1)" class="w-8 h-8 rounded-xl bg-teal-500 font-bold text-slate-950">+</button>
                             </div>
                         </div>
                     </div>
@@ -459,7 +498,7 @@
             }
 
             keys.forEach(id => {
-                const p = catalog.find(item => item.id == id);
+                const p = catalog.find(item => item.firestoreId == id);
                 if (p) {
                     container.innerHTML += `
                         <div class="flex justify-between items-center text-xs p-2 bg-slate-50 rounded-lg">
@@ -471,201 +510,4 @@
             });
             if (btn) {
                 btn.disabled = false;
-                btn.className = "w-full bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-teal-500/20";
-            }
-        }
-
-        async function submitOrder() {
-            const agent = document.getElementById('agent-name-select').value;
-            const location = document.getElementById('agent-location-input').value;
-            const priorityEl = document.querySelector('input[name="priority"]:checked');
-            const priority = priorityEl ? priorityEl.value : "Normal";
-
-            const items = Object.keys(cart).map(id => {
-                const p = catalog.find(item => item.id == id);
-                return { name: p.name, quantity: cart[id], unit: p.unit };
-            });
-
-            const newOrder = {
-                agent: agent,
-                location: location,
-                priority: priority,
-                items: items,
-                status: "En attente",
-                timestamp: Date.now()
-            };
-
-            if (isCloudConnected && db) {
-                await db.collection("orders").add(newOrder);
-            }
-
-            cart = {};
-            renderCatalog();
-            renderCart();
-            alert("Commande transmise avec succès sur le Cloud !");
-        }
-
-        // GESTION ADMIN (AJOUT / SUPPRESSION AGENTS & PRODUITS)
-        function renderManagerManagementLists() {
-            const agentsListContainer = document.getElementById('manager-agents-list');
-            const productsListContainer = document.getElementById('manager-products-list');
-
-            if (agentsListContainer) {
-                agentsListContainer.innerHTML = "";
-                agents.forEach(a => {
-                    agentsListContainer.innerHTML += `
-                        <div class="flex justify-between items-center text-xs bg-slate-50 p-2 rounded-xl">
-                            <div><strong>${a.name}</strong> <span class="text-slate-400">(${a.sector})</span></div>
-                            <button onclick="deleteAgent(${a.id})" class="text-rose-500 hover:text-rose-700 font-bold px-2 cursor-pointer">✕</button>
-                        </div>
-                    `;
-                });
-            }
-
-            if (productsListContainer) {
-                productsListContainer.innerHTML = "";
-                catalog.forEach(p => {
-                    productsListContainer.innerHTML += `
-                        <div class="flex justify-between items-center text-xs bg-slate-50 p-2 rounded-xl">
-                            <div><strong>${p.name}</strong> <span class="text-slate-400">(${p.unit})</span></div>
-                            <button onclick="deleteProduct(${p.id})" class="text-rose-500 hover:text-rose-700 font-bold px-2 cursor-pointer">✕</button>
-                        </div>
-                    `;
-                });
-            }
-        }
-
-        function addNewAgent() {
-            const nameInput = document.getElementById('new-agent-name');
-            const sectorInput = document.getElementById('new-agent-sector');
-            if (!nameInput || !nameInput.value) {
-                alert("Veuillez entrer un nom d'agent.");
-                return;
-            }
-
-            const newAgent = {
-                id: Date.now(),
-                name: nameInput.value,
-                sector: sectorInput && sectorInput.value ? sectorInput.value : "Général"
-            };
-
-            agents.push(newAgent);
-            localStorage.setItem('cleanlogix_agents', JSON.stringify(agents));
-            nameInput.value = "";
-            if (sectorInput) sectorInput.value = "";
-            initAgentsSelect();
-            renderManagerManagementLists();
-        }
-
-        function deleteAgent(id) {
-            agents = agents.filter(a => a.id !== id);
-            localStorage.setItem('cleanlogix_agents', JSON.stringify(agents));
-            initAgentsSelect();
-            renderManagerManagementLists();
-        }
-
-        function addNewProduct() {
-            const nameInput = document.getElementById('new-prod-name');
-            const unitInput = document.getElementById('new-prod-unit');
-            if (!nameInput || !nameInput.value) {
-                alert("Veuillez entrer un nom de produit.");
-                return;
-            }
-
-            const newProd = {
-                id: Date.now(),
-                name: nameInput.value,
-                unit: unitInput && unitInput.value ? unitInput.value : "Unité",
-                icon: "ph-package"
-            };
-
-            catalog.push(newProd);
-            localStorage.setItem('cleanlogix_catalog', JSON.stringify(catalog));
-            nameInput.value = "";
-            if (unitInput) unitInput.value = "";
-            renderCatalog();
-            renderManagerManagementLists();
-        }
-
-        function deleteProduct(id) {
-            catalog = catalog.filter(p => p.id !== id);
-            localStorage.setItem('cleanlogix_catalog', JSON.stringify(catalog));
-            renderCatalog();
-            renderManagerManagementLists();
-        }
-
-        function renderOrdersList() {
-            const container = document.getElementById('orders-list-container');
-            if (!container) return;
-            container.innerHTML = "";
-
-            if (orders.length === 0) {
-                container.innerHTML = `<div class="bg-white p-8 rounded-2xl text-center text-slate-400">Aucune commande reçue.</div>`;
-                return;
-            }
-
-            orders.forEach(o => {
-                let itemsList = o.items.map(i => `<li class="text-xs text-slate-700 font-medium">• ${i.name} : <strong>x${i.quantity} ${i.unit}</strong></li>`).join('');
-                container.innerHTML += `
-                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h4 class="font-bold text-slate-900">${o.agent}</h4>
-                                <p class="text-xs text-slate-400">${o.location}</p>
-                            </div>
-                            <span class="text-xs font-bold px-2.5 py-1 rounded-full ${o.priority === 'Urgent' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'}">${o.priority}</span>
-                        </div>
-                        <ul class="bg-slate-50 p-3 rounded-xl space-y-1">${itemsList}</ul>
-                        <div class="flex justify-between items-center pt-2">
-                            <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full">${o.status}</span>
-                            <button onclick="updateStatus('${o.firestoreId}', 'Prête')" class="text-xs bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-xl cursor-pointer">Marquer Prête</button>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-
-        async function updateStatus(id, newStatus) {
-            if (isCloudConnected && db && id) {
-                await db.collection("orders").doc(id).update({ status: newStatus });
-            }
-        }
-
-        function updateStats() {
-            const pendingEl = document.getElementById('stat-pending');
-            const completedEl = document.getElementById('stat-completed');
-            if (pendingEl) pendingEl.textContent = orders.filter(o => o.status === 'En attente').length;
-            if (completedEl) completedEl.textContent = orders.filter(o => o.status === 'Prête').length;
-        }
-
-        function playNotificationBeep() {
-            try {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(587.33, audioCtx.currentTime);
-                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.3);
-            } catch(e) {}
-        }
-
-        function showPushNotification(order) {
-            const popup = document.getElementById('push-notification');
-            if (!popup) return;
-            document.getElementById('push-title').textContent = `${order.agent} (${order.priority})`;
-            document.getElementById('push-body').textContent = `${order.location} - Nouvelle commande reçue.`;
-            popup.classList.remove('translate-y-[-180%]');
-            setTimeout(() => { dismissPushNotification(); }, 5000);
-        }
-
-        function dismissPushNotification() {
-            const popup = document.getElementById('push-notification');
-            if (popup) popup.classList.add('translate-y-[-180%]');
-        }
-    </script>
-</body>
-</html>
+                btn.className = "w-full bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold py-3.5
