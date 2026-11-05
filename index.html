@@ -235,23 +235,18 @@
         };
 
         function switchRole(role) {
-            const viewAgent = document.getElementById('view-agent');
-            const viewManager = document.getElementById('view-manager');
-            const btnAgent = document.getElementById('btn-role-agent');
-            const btnManager = document.getElementById('btn-role-manager');
+    const viewAgent = document.getElementById('view-agent');
+    const viewManager = document.getElementById('view-manager');
+    if (!viewAgent || !viewManager) return;
 
-            if (role === 'agent') {
-                viewAgent.classList.remove('hidden');
-                viewManager.classList.add('hidden');
-                btnAgent.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md transition-all";
-                btnManager.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white transition-all";
-            } else {
-                viewManager.classList.remove('hidden');
-                viewAgent.classList.add('hidden');
-                btnManager.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md transition-all";
-                btnAgent.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white transition-all";
-            }
-        }
+    if (role === 'agent') {
+        viewAgent.classList.remove('hidden');
+        viewManager.classList.add('hidden');
+    } else {
+        viewManager.classList.remove('hidden');
+        viewAgent.classList.add('hidden');
+    }
+}
 
         // FONCTION DE DÉVERROUILLAGE PIN CORRIGÉE ET SÉCURISÉE
         function verifyManagerPin() {
