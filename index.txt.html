@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CleanLogix Realtime - Gestion & Réapprovisionnement</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        teal: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- SDKs Firebase (Version Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="h-full text-slate-800 flex flex-col antialiased selection:bg-teal-500 selection:text-white pb-16 md:pb-0">
+
+    <!-- INITIALISATION FIREBASE -->
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyD2Efo5GxOd2UhOWapBtjJTOmS2gnaKkW4",
+            authDomain: "cleanlogixapp.firebaseapp.com",
+            projectId: "cleanlogixapp",
+            storageBucket: "cleanlogixapp.firebasestorage.app",
+            messagingSenderId: "244706789950",
+            appId: "1:244706789950:web:ebac4e7b5f9cef70b49f6f",
+            measurementId: "G-118254J5X4"
+        };
+
+        let db = null;
+        let isCloudConnected = false;
+
+        try {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+            isCloudConnected = true;
+            console.log("Firebase connecté avec succès !");
+        } catch (e) {
+            console.error("Erreur Firebase :", e);
+        }
+    </script>
+
+    <!-- HEADER / NAVIGATION -->
+    <header class="bg-slate-900 text-white sticky top-0 z-40 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-400 flex items-center justify-center text-slate-900 font-bold text-xl shadow-lg">
+                        <i class="ph-bold ph-sparkle text-2xl text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-extrabold text-lg leading-tight tracking-tight">Clean<span class="text-teal-400">Logix</span></h1>
+                        <p class="text-[11px] text-slate-400 flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span>Cloud Direct Connecté</span>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 bg-slate-800 p-1 rounded-xl border border-slate-700/60">
+                    <button id="btn-role-agent" onclick="switchRole('agent')" class="flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md transition-all">
+                        <i class="ph text-base ph-broom"></i>
+                        <span>Agent</span>
+                    </button>
+                    <button id="btn-role-manager" onclick="switchRole('manager')" class="flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white transition-all">
+                        <i class="ph text-base ph-clipboard-text"></i>
+                        <span>Responsable</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- NOTIFICATION PUSH -->
+    <div id="push-notification" class="fixed top-20 right-4 left-4 sm:left-auto sm:w-96 z-50 transform translate-y-[-180%] transition-transform duration-500 ease-out pointer-events-none">
+        <div class="bg-slate-900/95 backdrop-blur-md text-white p-4 rounded-2xl shadow-2xl border border-teal-500/40 flex gap-3.5 items-start pointer-events-auto">
+            <div class="p-2.5 bg-teal-500/20 text-teal-400 rounded-xl flex-shrink-0">
+                <i class="ph-fill ph-bell-ringing text-2xl animate-pulse"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <span class="text-[10px] font-bold text-teal-400 uppercase tracking-wider">Nouvelle Commande !</span>
+                <h4 id="push-title" class="text-sm font-bold text-white mt-0.5 truncate">Commande reçue</h4>
+                <p id="push-body" class="text-xs text-slate-300 mt-1">Détails de la commande...</p>
+            </div>
+            <button onclick="dismissPushNotification()" class="text-slate-400 hover:text-white">
+                <i class="ph ph-x text-lg"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+
+        <!-- VUE AGENT -->
+        <div id="view-agent" class="space-y-6">
+            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+                        <i class="ph-duotone ph-hand-waving text-teal-600 text-2xl"></i>
+                        Espace Agent de Propreté
+                    </h2>
+                    <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Faites votre demande de réapprovisionnement.</p>
+                </div>
+
+                <div class="flex flex-wrap sm:flex-nowrap items-center gap-3">
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Agent Intervenant</label>
+                        <select id="agent-name-select" onchange="onAgentSelectChange()" class="bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-3 py-2 font-semibold">
+                            <option value="Sophie Martin" data-sector="Bâtiment A - Étage 1">Sophie Martin</option>
+                            <option value="Marc Leroy" data-sector="Bâtiment B - RDC">Marc Leroy</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Zone d'intervention</label>
+                        <input type="text" id="agent-location-input" value="Bâtiment A - Étage 1" class="bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-3 py-2 font-medium">
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 space-y-5">
+                    <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Généré par JS -->
+                    </div>
+                </div>
+
+                <div class="lg:col-span-1">
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 sticky top-24 flex flex-col">
+                        <h3 class="font-bold text-slate-900 flex items-center gap-2 pb-4 border-b border-slate-100">
+                            <i class="ph-bold ph-shopping-cart text-teal-600 text-lg"></i> Panier de Réappro
+                        </h3>
+                        <div id="cart-items" class="py-4 space-y-3 min-h-[120px]">
+                            <p class="text-xs text-slate-400 text-center py-4">Panier vide</p>
+                        </div>
+                        <button id="btn-submit-order" onclick="submitOrder()" disabled class="w-full bg-slate-200 text-slate-400 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2">
+                            <span>Envoyer au Responsable</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VUE RESPONSABLE -->
+        <div id="view-manager" class="hidden space-y-6">
+            <!-- Écran de verrouillage PIN -->
+            <div id="manager-lock-screen" class="max-w-md mx-auto my-12 bg-white p-8 rounded-2xl shadow-xl border border-slate-200 text-center">
+                <div class="w-16 h-16 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
+                    <i class="ph-bold ph-lock-key"></i>
+                </div>
+                <h2 class="text-xl font-extrabold text-slate-900">Espace Responsable</h2>
+                <p class="text-xs text-slate-500 mt-1 mb-6">Entrez le code PIN (Par défaut : <span class="font-bold text-slate-800">1234</span>)</p>
+                <input type="password" id="manager-pin-input" maxlength="4" placeholder="••••" class="w-40 text-center text-2xl font-bold py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none mb-4 tracking-widest">
+                <br>
+                <button onclick="verifyManagerPin()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl transition-all shadow-md cursor-pointer">
+                    Déverrouiller
+                </button>
+                <p id="pin-error-msg" class="text-rose-500 text-xs font-semibold mt-3 hidden">Code PIN incorrect (Essayez 1234)</p>
+            </div>
+
+            <!-- Contenu Responsable Déverrouillé -->
+            <div id="manager-unlocked-content" class="hidden space-y-6">
+                <div class="bg-slate-900 text-white p-6 rounded-2xl shadow-xl flex justify-between items-center">
+                    <div>
+                        <h2 class="text-2xl font-black">Suivi des Demandes en Direct</h2>
+                        <p class="text-slate-400 text-xs mt-1">Commandes synchronisées via le Cloud.</p>
+                    </div>
+                    <div class="bg-slate-800 p-3 rounded-xl text-center min-w-[85px]">
+                        <span id="stat-pending" class="block text-2xl font-black text-amber-400">0</span>
+                        <span class="text-[10px] text-slate-400 font-semibold uppercase">À Traiter</span>
+                    </div>
+                </div>
+
+                <div id="orders-list-container" class="space-y-4">
+                    <!-- Commandes -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- LOGIQUE JAVASCRIPT CORRIGÉE -->
+    <script>
+        const catalog = [
+            { id: 1, name: "Détergent sols concentré 5L", unit: "Bidon 5L", icon: "ph-drop" },
+            { id: 2, name: "Désinfectant multi-surfaces 750ml", unit: "Flacon", icon: "ph-spray-bottle" },
+            { id: 3, name: "Chiffons microfibres pro", unit: "Lot de 10", icon: "ph-stack" },
+            { id: 4, name: "Gants nitrile jetables", unit: "Boîte de 100", icon: "ph-hand" }
+        ];
+
+        let cart = {};
+        let orders = [];
+
+        window.onload = function() {
+            renderCatalog();
+            
+            if (isCloudConnected && db) {
+                db.collection("orders").orderBy("timestamp", "desc").onSnapshot((snapshot) => {
+                    let newOrders = [];
+                    snapshot.forEach((doc) => {
+                        newOrders.push({ firestoreId: doc.id, ...doc.data() });
+                    });
+                    
+                    if (newOrders.length > orders.length && orders.length > 0) {
+                        playNotificationBeep();
+                        showPushNotification(newOrders[0]);
+                    }
+                    
+                    orders = newOrders;
+                    renderOrdersList();
+                    updateStats();
+                });
+            }
+        };
+
+        function switchRole(role) {
+    const viewAgent = document.getElementById('view-agent');
+    const viewManager = document.getElementById('view-manager');
+    if (!viewAgent || !viewManager) return;
+
+    if (role === 'agent') {
+        viewAgent.classList.remove('hidden');
+        viewManager.classList.add('hidden');
+    } else {
+        viewManager.classList.remove('hidden');
+        viewAgent.classList.add('hidden');
+    }
+}
+
+        // FONCTION DE DÉVERROUILLAGE PIN CORRIGÉE ET SÉCURISÉE
+        function verifyManagerPin() {
+            const pinInput = document.getElementById('manager-pin-input');
+            const errorMsg = document.getElementById('pin-error-msg');
+            const lockScreen = document.getElementById('manager-lock-screen');
+            const unlockedContent = document.getElementById('manager-unlocked-content');
+
+            if (!pinInput) return;
+
+            if (pinInput.value === "2256") {
+                lockScreen.classList.add('hidden');
+                unlockedContent.classList.remove('hidden');
+                errorMsg.classList.add('hidden');
+            } else {
+                errorMsg.classList.remove('hidden');
+                pinInput.
