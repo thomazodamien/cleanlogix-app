@@ -259,4 +259,432 @@
         const DEFAULT_PRODUCTS = [
             { id: "p1", name: "Détergent sols concentré 5L", unit: "Bidon 5L", icon: "ph-drop" },
             { id: "p2", name: "Désinfectant multi-surfaces 750ml", unit: "Flacon", icon: "ph-spray-bottle" },
-            { id: "p3", name
+            { id: "p3", name: "Chiffons microfibres pro", unit: "Lot de 10", icon: "ph-stack" },
+            { id: "p4", name: "Gants nitrile jetables", unit: "Boîte de 100", icon: "ph-hand" },
+            { id: "p5", name: "Gel détartrant sanitaires", unit: "Flacon 1L", icon: "ph-toilet" }
+        ];
+
+        const DEFAULT_AGENTS = [
+            { id: "a1", name: "Sophie Martin", sector: "Bâtiment A - Étage 1" },
+            { id: "a2", name: "Marc Leroy", sector: "Bâtiment B - RDC" }
+        ];
+
+        // Listes principales TOUJOURS initialisées avec les valeurs de base (jamais vides)
+        let catalog = [...DEFAULT_PRODUCTS];
+        let agents = [...DEFAULT_AGENTS];
+        let orders = [];
+        let cart = {};
+        
+        let db = null;
+        let isCloudReady = false;
+        const ntfyTopic = "cleanlogix-responsable-2256";
+
+        window.onload = function() {
+            // Affichage immédiat pour garantir l'accès sans blocage
+            initAgentsSelect();
+            renderCatalog();
+            renderCart();
+            renderManagerManagementLists();
+
+            try {
+                firebase.initializeApp({
+                    apiKey: "AIzaSyD2Efo5GxOd2UhOWapBtjJTOmS2gnaKkW4",
+                    authDomain: "cleanlogixapp.firebaseapp.com",
+                    projectId: "cleanlogixapp",
+                    storageBucket: "cleanlogixapp.firebasestorage.app",
+                    messagingSenderId: "244706789950",
+                    appId: "1:244706789950:web:ebac4e7b5f9cef70b49f6f"
+                });
+                db = firebase.firestore();
+                isCloudReady = true;
+                
+                // Synchronisation commandes
+                db.collection("orders").orderBy("timestamp", "desc").onSnapshot(snap => {
+                    orders = [];
+                    snap.forEach(doc => orders.push({ firestoreId: doc.id, ...doc.data() }));
+                    renderOrdersList();
+                    updateStats();
+                }, err => console.log("Info Firestore orders :", err));
+
+                // Synchronisation agents avec sécurité anti-vide
+                db.collection("agents").onSnapshot(snap => {
+                    if (!snap.empty) {
+                        let cloudAgents = [];
+                        snap.forEach(doc => cloudAgents.push({ firestoreId: doc.id, ...doc.data() }));
+                        agents = cloudAgents;
+                        initAgentsSelect();
+                        renderManagerManagementLists();
+                    } else {
+                        // Si la base est vide, on y pousse les agents par défaut
+                        DEFAULT_AGENTS.forEach(a => db.collection("agents").add(a).catch(()=>{}));
+                    }
+                }, err => console.log("Info Firestore agents :", err));
+
+                // Synchronisation catalogue avec sécurité anti-vide
+                db.collection("catalog").onSnapshot(snap => {
+                    if (!snap.empty) {
+                        let cloudCatalog = [];
+                        snap.forEach(doc => cloudCatalog.push({ firestoreId: doc.id, ...doc.data() }));
+                        catalog = cloudCatalog;
+                        renderCatalog();
+                        renderManagerManagementLists();
+                    } else {
+                        // Si la base est vide, on y pousse les produits par défaut
+                        DEFAULT_PRODUCTS.forEach(p => db.collection("catalog").add(p).catch(()=>{}));
+                    }
+                }, err => console.log("Info Firestore catalog :", err));
+
+            } catch (e) {
+                console.warn("Mode autonome local :", e);
+            }
+        };
+
+        function switchRole(role) {
+            const viewAgent = document.getElementById('view-agent');
+            const viewManager = document.getElementById('view-manager');
+            const btnAgent = document.getElementById('btn-role-agent');
+            const btnManager = document.getElementById('btn-role-manager');
+
+            if (!viewAgent || !viewManager) return;
+
+            if (role === 'agent') {
+                viewAgent.classList.remove('hidden');
+                viewManager.classList.add('hidden');
+                btnAgent.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md transition-all cursor-pointer";
+                btnManager.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white transition-all cursor-pointer";
+            } else {
+                viewManager.classList.remove('hidden');
+                viewAgent.classList.add('hidden');
+                btnManager.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md transition-all cursor-pointer";
+                btnAgent.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white transition-all cursor-pointer";
+            }
+        }
+
+        function verifyManagerPin() {
+            const pinInput = document.getElementById('manager-pin-input');
+            const errorMsg = document.getElementById('pin-error-msg');
+            const lockScreen = document.getElementById('manager-lock-screen');
+            const unlockedContent = document.getElementById('manager-unlocked-content');
+
+            if (pinInput && pinInput.value === "2256") {
+                lockScreen.classList.add('hidden');
+                unlockedContent.classList.remove('hidden');
+                errorMsg.classList.add('hidden');
+                renderManagerManagementLists();
+            } else {
+                errorMsg.classList.remove('hidden');
+                if(pinInput) pinInput.value = "";
+            }
+        }
+
+        function initAgentsSelect() {
+            const select = document.getElementById('agent-name-select');
+            if (!select) return;
+            select.innerHTML = "";
+            agents.forEach(a => {
+                select.innerHTML += `<option value="${a.name}" data-sector="${a.sector}">${a.name}</option>`;
+            });
+            onAgentSelectChange();
+        }
+
+        function onAgentSelectChange() {
+            const select = document.getElementById('agent-name-select');
+            const locationInput = document.getElementById('agent-location-input');
+            if (!select || !locationInput) return;
+            const selectedOpt = select.options[select.selectedIndex];
+            if (selectedOpt) {
+                locationInput.value = selectedOpt.getAttribute('data-sector') || '';
+            }
+        }
+
+        function renderCatalog() {
+            const grid = document.getElementById('products-grid');
+            const searchInput = document.getElementById('catalog-search');
+            if (!grid) return;
+            
+            grid.innerHTML = "";
+            const filter = searchInput ? searchInput.value.toLowerCase() : "";
+            const filtered = catalog.filter(p => p.name.toLowerCase().includes(filter));
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `<p class="text-xs text-slate-400 col-span-2 text-center py-6">Aucun produit trouvé</p>`;
+                return;
+            }
+
+            filtered.forEach(p => {
+                const key = p.firestoreId || p.id || p.name;
+                const qty = cart[key] || 0;
+                grid.innerHTML += `
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between gap-4">
+                        <div class="flex items-start gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-xl">
+                                <i class="ph ${p.icon || 'ph-package'}"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-slate-900 text-sm">${p.name}</h4>
+                                <p class="text-xs text-slate-400">${p.unit}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+                            <div class="flex items-center gap-2">
+                                <button onclick="updateCart('${key}', -1)" class="w-8 h-8 rounded-xl bg-slate-100 font-bold cursor-pointer">-</button>
+                                <span class="w-6 text-center font-bold text-sm">${qty}</span>
+                                <button onclick="updateCart('${key}', 1)" class="w-8 h-8 rounded-xl bg-teal-500 font-bold text-slate-950 cursor-pointer">+</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function updateCart(key, delta) {
+            cart[key] = (cart[key] || 0) + delta;
+            if (cart[key] <= 0) delete cart[key];
+            renderCatalog();
+            renderCart();
+        }
+
+        function renderCart() {
+            const container = document.getElementById('cart-items');
+            const btn = document.getElementById('btn-submit-order');
+            const countBadge = document.getElementById('cart-count-badge');
+            const keys = Object.keys(cart);
+            if (!container) return;
+            container.innerHTML = "";
+
+            let totalItems = 0;
+            keys.forEach(k => totalItems += cart[k]);
+            if (countBadge) countBadge.textContent = `${totalItems} article${totalItems > 1 ? 's' : ''}`;
+
+            if (keys.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">Panier vide</p>`;
+                if (btn) {
+                    btn.disabled = true;
+                    btn.className = "w-full bg-slate-200 text-slate-400 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2";
+                }
+                return;
+            }
+
+            keys.forEach(k => {
+                const p = catalog.find(item => (item.firestoreId === k || item.id === k || item.name === k));
+                if (p) {
+                    container.innerHTML += `
+                        <div class="flex justify-between items-center text-xs p-2 bg-slate-50 rounded-lg">
+                            <span class="font-bold text-slate-800">${p.name}</span>
+                            <span class="font-bold text-teal-600">x${cart[k]}</span>
+                        </div>
+                    `;
+                }
+            });
+            if (btn) {
+                btn.disabled = false;
+                btn.className = "w-full bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg cursor-pointer";
+            }
+        }
+
+        async function submitOrder() {
+            const agent = document.getElementById('agent-name-select').value;
+            const location = document.getElementById('agent-location-input').value;
+            const priorityEl = document.querySelector('input[name="priority"]:checked');
+            const priority = priorityEl ? priorityEl.value : "Normal";
+            const commentInput = document.getElementById('order-comment-input');
+            const comment = commentInput ? commentInput.value.trim() : "";
+
+            const items = Object.keys(cart).map(k => {
+                const p = catalog.find(item => (item.firestoreId === k || item.id === k || item.name === k));
+                return { name: p ? p.name : k, quantity: cart[k], unit: p ? p.unit : 'Unité' };
+            });
+
+            const itemsSummary = items.map(i => `- ${i.name} (x${i.quantity} ${i.unit})`).join('\n');
+
+            const newOrder = {
+                agent: agent,
+                location: location,
+                priority: priority,
+                comment: comment,
+                items: items,
+                status: "En attente",
+                timestamp: Date.now()
+            };
+
+            if (isCloudReady && db) {
+                try {
+                    await db.collection("orders").add(newOrder);
+                } catch(e) {
+                    console.log("Erreur envoi ordre :", e);
+                }
+            } else {
+                orders.unshift({ firestoreId: "local_" + Date.now(), ...newOrder });
+                renderOrdersList();
+                updateStats();
+            }
+
+            try {
+                const textMessage = `Agent: ${agent}\nZone: ${location}\nPriorite: ${priority}\nProduits:\n${itemsSummary}\nRemarque: ${comment || 'Aucune'}`;
+                fetch(`https://ntfy.sh/${ntfyTopic}`, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: textMessage
+                }).catch(() => {});
+            } catch(e) {}
+
+            cart = {};
+            if (commentInput) commentInput.value = "";
+            renderCatalog();
+            renderCart();
+            alert("Commande transmise avec succès ! Notification envoyée.");
+        }
+
+        function renderManagerManagementLists() {
+            const agentsListContainer = document.getElementById('manager-agents-list');
+            const productsListContainer = document.getElementById('manager-products-list');
+
+            if (agentsListContainer) {
+                agentsListContainer.innerHTML = "";
+                agents.forEach(a => {
+                    const id = a.firestoreId || a.id;
+                    agentsListContainer.innerHTML += `
+                        <div class="flex justify-between items-center text-xs bg-slate-50 p-2 rounded-xl">
+                            <div><strong>${a.name}</strong> <span class="text-slate-400">(${a.sector})</span></div>
+                            <button onclick="deleteAgent('${id}')" class="text-rose-500 font-bold px-2 cursor-pointer">✕</button>
+                        </div>
+                    `;
+                });
+            }
+
+            if (productsListContainer) {
+                productsListContainer.innerHTML = "";
+                catalog.forEach(p => {
+                    const id = p.firestoreId || p.id;
+                    productsListContainer.innerHTML += `
+                        <div class="flex justify-between items-center text-xs bg-slate-50 p-2 rounded-xl">
+                            <div><strong>${p.name}</strong> <span class="text-slate-400">(${p.unit})</span></div>
+                            <button onclick="deleteProduct('${id}')" class="text-rose-500 font-bold px-2 cursor-pointer">✕</button>
+                        </div>
+                    `;
+                });
+            }
+        }
+
+        async function addNewAgent() {
+            const nameInput = document.getElementById('new-agent-name');
+            const sectorInput = document.getElementById('new-agent-sector');
+            if (!nameInput || !nameInput.value) return alert("Entrez un nom.");
+
+            const newAgent = { name: nameInput.value, sector: sectorInput?.value || "Général" };
+            if (isCloudReady && db) {
+                await db.collection("agents").add(newAgent).catch(()=>{});
+            } else {
+                agents.push({ id: "local_" + Date.now(), ...newAgent });
+                initAgentsSelect();
+                renderManagerManagementLists();
+            }
+            nameInput.value = "";
+            if(sectorInput) sectorInput.value = "";
+        }
+
+        async function deleteAgent(id) {
+            if (isCloudReady && db && !id.startsWith("local_") && !id.startsWith("a")) {
+                await db.collection("agents").doc(id).delete().catch(()=>{});
+            } else {
+                agents = agents.filter(a => (a.firestoreId !== id && a.id !== id));
+                initAgentsSelect();
+                renderManagerManagementLists();
+            }
+        }
+
+        async function addNewProduct() {
+            const nameInput = document.getElementById('new-prod-name');
+            const unitInput = document.getElementById('new-prod-unit');
+            if (!nameInput || !nameInput.value) return alert("Entrez un produit.");
+
+            const newProd = { name: nameInput.value, unit: unitInput?.value || "Unité", icon: "ph-package" };
+            if (isCloudReady && db) {
+                await db.collection("catalog").add(newProd).catch(()=>{});
+            } else {
+                catalog.push({ id: "local_" + Date.now(), ...newProd });
+                renderCatalog();
+                renderManagerManagementLists();
+            }
+            nameInput.value = "";
+            if(unitInput) unitInput.value = "";
+        }
+
+        async function deleteProduct(id) {
+            if (isCloudReady && db && !id.startsWith("local_") && !id.startsWith("p")) {
+                await db.collection("catalog").doc(id).delete().catch(()=>{});
+            } else {
+                catalog = catalog.filter(p => (p.firestoreId !== id && p.id !== id));
+                renderCatalog();
+                renderManagerManagementLists();
+            }
+        }
+
+        async function clearAllOrders() {
+            if (!confirm("Voulez-vous supprimer toutes les commandes ?")) return;
+            if (isCloudReady && db) {
+                const snap = await db.collection("orders").get();
+                const batch = db.batch();
+                snap.docs.forEach(d => batch.delete(d.ref));
+                await batch.commit();
+            }
+            orders = [];
+            renderOrdersList();
+            updateStats();
+        }
+
+        function renderOrdersList() {
+            const container = document.getElementById('orders-list-container');
+            if (!container) return;
+            container.innerHTML = "";
+
+            if (orders.length === 0) {
+                container.innerHTML = `<div class="bg-white p-8 rounded-2xl text-center text-slate-400">Aucune commande reçue.</div>`;
+                return;
+            }
+
+            orders.forEach(o => {
+                let itemsList = o.items ? o.items.map(i => `<li class="text-xs text-slate-700">• ${i.name} : <strong>x${i.quantity} ${i.unit}</strong></li>`).join('') : '';
+                let commentBlock = o.comment ? `<div class="bg-amber-50 border border-amber-200 p-2.5 rounded-xl text-xs text-amber-900 mt-2"><strong>Remarque :</strong> ${o.comment}</div>` : '';
+
+                container.innerHTML += `
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="font-bold text-slate-900">${o.agent || 'Inconnu'}</h4>
+                                <p class="text-xs text-slate-400">${o.location || ''}</p>
+                            </div>
+                            <span class="text-xs font-bold px-2.5 py-1 rounded-full ${o.priority === 'Urgent' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'}">${o.priority || 'Normal'}</span>
+                        </div>
+                        <ul class="bg-slate-50 p-3 rounded-xl space-y-1">${itemsList}</ul>
+                        ${commentBlock}
+                        <div class="flex justify-between items-center pt-2">
+                            <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full">${o.status || 'En attente'}</span>
+                            <button onclick="updateStatus('${o.firestoreId}', 'Prête')" class="text-xs bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-xl cursor-pointer">Marquer Prête</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        async function updateStatus(id, newStatus) {
+            if (isCloudReady && db && id && !id.startsWith("local_")) {
+                await db.collection("orders").doc(id).update({ status: newStatus }).catch(()=>{});
+            } else {
+                const ord = orders.find(o => o.firestoreId === id);
+                if(ord) ord.status = newStatus;
+                renderOrdersList();
+                updateStats();
+            }
+        }
+
+        function updateStats() {
+            const pendingEl = document.getElementById('stat-pending');
+            const completedEl = document.getElementById('stat-completed');
+            if (pendingEl) pendingEl.textContent = orders.filter(o => o.status === 'En attente').length;
+            if (completedEl) completedEl.textContent = orders.filter(o => o.status === 'Prête').length;
+        }
+    </script>
+</body>
+</html>
