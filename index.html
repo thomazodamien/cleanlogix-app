@@ -253,7 +253,7 @@
         </div>
     </main>
 
-    <!-- SCRIPT LOGIQUE INTERNE -->
+    <!-- SCRIPT LOGIQUE INTERNE AVEC SAUVEGARDE LOCALE -->
     <script>
         const INITIAL_PRODUCTS = [
             { id: "p1", name: "Détergent sols concentré 5L", unit: "Bidon 5L", category: "Produits", icon: "ph-drop" },
@@ -269,6 +269,7 @@
             { id: "a2", name: "Marc Leroy", sector: "Bâtiment B - RDC" }
         ];
 
+        // Charger depuis localStorage ou utiliser les valeurs par défaut
         let catalog = JSON.parse(localStorage.getItem('cleanlogix_catalog')) || INITIAL_PRODUCTS;
         let agents = JSON.parse(localStorage.getItem('cleanlogix_agents')) || INITIAL_AGENTS;
         let orders = JSON.parse(localStorage.getItem('cleanlogix_orders')) || [];
@@ -489,7 +490,7 @@
             if (commentInput) commentInput.value = "";
             renderCatalog();
             renderCart();
-            alert("Commande transmise avec succès ! Notification envoyée sur l'application ntfy.");
+            alert("Commande transmise avec succès ! Notification envoyée.");
         }
 
         function renderManagerManagementLists() {
