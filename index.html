@@ -225,7 +225,7 @@
                     <i class="ph-bold ph-lock-key"></i>
                 </div>
                 <h2 class="text-xl font-extrabold text-slate-900">Espace Responsable</h2>
-                <p class="text-xs text-slate-500 mt-1 mb-6">Code PIN : <span class="font-bold text-slate-800">2256</span></p>
+                <p class="text-xs text-slate-500 mt-1 mb-6">Veuillez saisir votre code PIN pour accéder à l'administration.</p>
                 <input type="password" id="manager-pin-input" maxlength="4" placeholder="••••" class="w-40 text-center text-2xl font-bold py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none mb-4 tracking-widest">
                 <button onclick="verifyManagerPin()" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl cursor-pointer">Déverrouiller</button>
                 <p id="pin-error-msg" class="text-rose-500 text-xs font-semibold mt-3 hidden">Code PIN incorrect.</p>
@@ -275,4 +275,225 @@
                         <div class="space-y-2">
                             <input type="text" id="new-prod-name" placeholder="Nom du produit" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none">
                             <input type="text" id="new-prod-unit" placeholder="Unité (ex: Bidon 5L, Carton...)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none">
-                            <button onclick="addNewProduct()" class="w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py
+                            <button onclick="addNewProduct()" class="w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-2.5 rounded-xl text-xs transition-all cursor-pointer">Ajouter au catalogue</button>
+                        </div>
+                        <div id="manager-products-list" class="space-y-2 max-h-40 overflow-y-auto pt-2 border-t border-slate-100">
+                            <!-- Liste gérée par JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LISTE DES COMMANDES & BOUTON EFFACER -->
+                <div class="space-y-4 pt-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <h3 class="font-bold text-slate-900 text-lg">Commandes Reçues</h3>
+                        <button onclick="clearAllOrders()" class="text-xs bg-rose-600 hover:bg-rose-500 text-white font-bold px-4 py-2.5 rounded-xl transition-all shadow-md cursor-pointer flex items-center justify-center gap-2">
+                            <i class="ph-bold ph-trash text-sm"></i>
+                            <span>Vider tout l'historique</span>
+                        </button>
+                    </div>
+                    <div id="orders-list-container" class="space-y-4">
+                        <!-- Liste des commandes reçues -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- LOGIQUE JS -->
+    <script>
+        const DEFAULT_PRODUCTS = [
+            { name: "Détergent sols concentré 5L", unit: "Bidon 5L", icon: "ph-drop" },
+            { name: "Désinfectant multi-surfaces 750ml", unit: "Flacon", icon: "ph-spray-bottle" },
+            { name: "Chiffons microfibres pro", unit: "Lot de 10", icon: "ph-stack" },
+            { name: "Gants nitrile jetables", unit: "Boîte de 100", icon: "ph-hand" },
+            { name: "Gel détartrant sanitaires", unit: "Flacon 1L", icon: "ph-toilet" }
+        ];
+
+        const DEFAULT_AGENTS = [
+            { name: "Sophie Martin", sector: "Bâtiment A - Étage 1" },
+            { name: "Marc Leroy", sector: "Bâtiment B - RDC" }
+        ];
+
+        let catalog = [];
+        let agents = [];
+        let orders = [];
+        let cart = {};
+
+        // Démarrage instantané
+        window.onload = function() {
+            initCloudSync();
+            renderCart();
+        };
+
+        // SYNCHRONISATION CLOUD EN TEMPS RÉEL
+        function initCloudSync() {
+            if (isCloudConnected && db) {
+                // 1. Écoute commandes
+                db.collection("orders").orderBy("timestamp", "desc").onSnapshot((snapshot) => {
+                    let newOrders = [];
+                    snapshot.forEach((doc) => {
+                        newOrders.push({ firestoreId: doc.id, ...doc.data() });
+                    });
+                    
+                    if (newOrders.length > orders.length && orders.length > 0) {
+                        playNotificationBeep();
+                        showPushNotification(newOrders[0]);
+                    }
+                    
+                    orders = newOrders;
+                    renderOrdersList();
+                    updateStats();
+                });
+
+                // 2. Écoute agents
+                db.collection("agents").onSnapshot((snapshot) => {
+                    agents = [];
+                    if (snapshot.empty) {
+                        DEFAULT_AGENTS.forEach(a => db.collection("agents").add(a));
+                    } else {
+                        snapshot.forEach((doc) => {
+                            agents.push({ firestoreId: doc.id, ...doc.data() });
+                        });
+                    }
+                    initAgentsSelect();
+                    renderManagerManagementLists();
+                });
+
+                // 3. Écoute catalogue produits
+                db.collection("catalog").onSnapshot((snapshot) => {
+                    catalog = [];
+                    if (snapshot.empty) {
+                        DEFAULT_PRODUCTS.forEach(p => db.collection("catalog").add(p));
+                    } else {
+                        snapshot.forEach((doc) => {
+                            catalog.push({ firestoreId: doc.id, ...doc.data() });
+                        });
+                    }
+                    renderCatalog();
+                    renderManagerManagementLists();
+                });
+            } else {
+                // Mode secours local si pas de cloud
+                catalog = DEFAULT_PRODUCTS.map((p, index) => ({ firestoreId: "local_" + index, ...p }));
+                agents = DEFAULT_AGENTS.map((a, index) => ({ firestoreId: "local_" + index, ...a }));
+                initAgentsSelect();
+                renderCatalog();
+                renderManagerManagementLists();
+            }
+        }
+
+        // NAVIGATION INSTANTANÉE ENTRE LES VUES
+        function switchRole(role) {
+            const viewAgent = document.getElementById('view-agent');
+            const viewManager = document.getElementById('view-manager');
+            const btnAgent = document.getElementById('btn-role-agent');
+            const btnManager = document.getElementById('btn-role-manager');
+
+            if (!viewAgent || !viewManager) return;
+
+            if (role === 'agent') {
+                viewAgent.classList.remove('hidden');
+                viewManager.classList.add('hidden');
+                if(btnAgent) btnAgent.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md transition-all cursor-pointer";
+                if(btnManager) btnManager.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white transition-all cursor-pointer";
+            } else {
+                viewManager.classList.remove('hidden');
+                viewAgent.classList.add('hidden');
+                if(btnManager) btnManager.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md transition-all cursor-pointer";
+                if(btnAgent) btnAgent.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white transition-all cursor-pointer";
+            }
+        }
+
+        function verifyManagerPin() {
+            const pinInput = document.getElementById('manager-pin-input');
+            const errorMsg = document.getElementById('pin-error-msg');
+            const lockScreen = document.getElementById('manager-lock-screen');
+            const unlockedContent = document.getElementById('manager-unlocked-content');
+
+            if (pinInput && pinInput.value === "2256") {
+                lockScreen.classList.add('hidden');
+                unlockedContent.classList.remove('hidden');
+                errorMsg.classList.add('hidden');
+                renderManagerManagementLists();
+            } else {
+                errorMsg.classList.remove('hidden');
+                if(pinInput) pinInput.value = "";
+            }
+        }
+
+        function initAgentsSelect() {
+            const select = document.getElementById('agent-name-select');
+            if (!select) return;
+            select.innerHTML = "";
+            agents.forEach(a => {
+                select.innerHTML += `<option value="${a.name}" data-sector="${a.sector}">${a.name}</option>`;
+            });
+            onAgentSelectChange();
+        }
+
+        function onAgentSelectChange() {
+            const select = document.getElementById('agent-name-select');
+            const locationInput = document.getElementById('agent-location-input');
+            if (!select || !locationInput) return;
+            const selectedOpt = select.options[select.selectedIndex];
+            if (selectedOpt) {
+                locationInput.value = selectedOpt.getAttribute('data-sector') || '';
+            }
+        }
+
+        function renderCatalog() {
+            const grid = document.getElementById('products-grid');
+            const searchInput = document.getElementById('catalog-search');
+            if (!grid) return;
+            
+            grid.innerHTML = "";
+            const filter = searchInput ? searchInput.value.toLowerCase() : "";
+            const filtered = catalog.filter(p => p.name.toLowerCase().includes(filter));
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `<p class="text-xs text-slate-400 col-span-2 text-center py-6">Aucun produit trouvé</p>`;
+                return;
+            }
+
+            filtered.forEach(p => {
+                const qty = cart[p.firestoreId] || 0;
+                grid.innerHTML += `
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between gap-4">
+                        <div class="flex items-start gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-xl">
+                                <i class="ph ${p.icon || 'ph-package'}"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-slate-900 text-sm">${p.name}</h4>
+                                <p class="text-xs text-slate-400">${p.unit}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+                            <div class="flex items-center gap-2">
+                                <button onclick="updateCart('${p.firestoreId}', -1)" class="w-8 h-8 rounded-xl bg-slate-100 font-bold cursor-pointer">-</button>
+                                <span class="w-6 text-center font-bold text-sm">${qty}</span>
+                                <button onclick="updateCart('${p.firestoreId}', 1)" class="w-8 h-8 rounded-xl bg-teal-500 font-bold text-slate-950 cursor-pointer">+</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function updateCart(id, delta) {
+            cart[id] = (cart[id] || 0) + delta;
+            if (cart[id] <= 0) delete cart[id];
+            renderCatalog();
+            renderCart();
+        }
+
+        function renderCart() {
+            const container = document.getElementById('cart-items');
+            const btn = document.getElementById('btn-submit-order');
+            const countBadge = document.getElementById('cart-count-badge');
+            const keys = Object.keys(cart);
+            if (!container) return;
+            container.innerHTML = "";
+
+            let totalItems = 0;
