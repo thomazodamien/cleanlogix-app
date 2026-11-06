@@ -35,7 +35,6 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
                 <div class="flex items-center gap-3">
-                    <!-- ICÔNE / LOGO GARANTI SANS CARRÉ BLANC -->
                     <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-500 flex items-center justify-center text-slate-950 font-black text-xl shadow-lg">
                         <i class="ph-bold ph-plant text-2xl text-white"></i>
                     </div>
@@ -94,7 +93,6 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <!-- CATALOGUE & ONGLETS -->
                 <div class="lg:col-span-2 space-y-4">
-                    <!-- ONGLETS PAR FAMILLE -->
                     <div class="flex items-center gap-2 overflow-x-auto pb-1 hide-scrollbar" id="category-tabs">
                         <button onclick="setCategoryFilter('Tous')" class="cat-tab px-4 py-2 rounded-xl text-xs font-bold bg-teal-500 text-slate-950 shadow-sm transition-all whitespace-nowrap cursor-pointer">Tous</button>
                         <button onclick="setCategoryFilter('Produits')" class="cat-tab px-4 py-2 rounded-xl text-xs font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 transition-all whitespace-nowrap cursor-pointer">Produits</button>
@@ -167,8 +165,9 @@
                     <i class="ph-bold ph-lock-key"></i>
                 </div>
                 <h2 class="text-xl font-extrabold text-slate-900">Espace Responsable</h2>
-                <p class="text-xs text-slate-500 mt-1 mb-6">Saisissez votre code PIN (2256) pour accéder à l'administration.</p>
-                <input type="password" id="manager-pin-input" maxlength="4" placeholder="••••" class="w-40 text-center text-2xl font-bold py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none mb-4 tracking-widest">
+                <div class="my-6">
+                    <input type="password" id="manager-pin-input" maxlength="4" placeholder="••••" class="w-40 text-center text-2xl font-bold py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none tracking-widest">
+                </div>
                 <button onclick="verifyManagerPin()" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl cursor-pointer">Déverrouiller</button>
                 <p id="pin-error-msg" class="text-rose-500 text-xs font-semibold mt-3 hidden">Code PIN incorrect.</p>
             </div>
@@ -254,7 +253,7 @@
         </div>
     </main>
 
-    <!-- SCRIPT LOGIQUE INTERNE AVEC PERSISTENCE LOCALE -->
+    <!-- SCRIPT LOGIQUE INTERNE -->
     <script>
         const INITIAL_PRODUCTS = [
             { id: "p1", name: "Détergent sols concentré 5L", unit: "Bidon 5L", category: "Produits", icon: "ph-drop" },
@@ -270,7 +269,6 @@
             { id: "a2", name: "Marc Leroy", sector: "Bâtiment B - RDC" }
         ];
 
-        // Charger depuis localStorage (si vide, initialise avec les valeurs par défaut)
         let catalog = JSON.parse(localStorage.getItem('inguiclean_catalog'));
         if (!catalog || catalog.length === 0) {
             catalog = INITIAL_PRODUCTS;
@@ -469,7 +467,7 @@
                 return { name: p ? p.name : k, quantity: cart[k], unit: p ? p.unit : 'Unité' };
             });
 
-            const itemsSummary = items.map(i => `- ${i.name} (x${i.quantity} ${i.unit})`).join('\n');
+            const itemsSummary = items.map(i => `- ${i.name} (x${i.quantity}${i.unit})`).join('\n');
 
             const newOrder = {
                 id: "ord_" + Date.now(),
@@ -487,14 +485,12 @@
             renderOrdersList();
             updateStats();
 
-            try {
-                const textMessage = `Agent: ${agent}\nZone: ${location}\nPriorite: ${priority}\nProduits:\n${itemsSummary}\nRemarque: ${comment || 'Aucune'}`;
-                fetch(`https://ntfy.sh/${ntfyTopic}`, {
+            const textMessage = `Agent: ${agent}\nZone:${location}\nPriorite: ${priority}\nProduits:\n${itemsSummary}\nRemarque: ${comment \vert{}\vert{} 'Aucune'}`; try { fetch(`https://ntfy.sh/${ntfyTopic}`, {
                     method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'text/plain' },
                     body: textMessage
-                }).catch(() => {});
+                }).catch(() => {
+                    new Image().src = `https://ntfy.sh/${ntfyTopic}/publish?message=${encodeURIComponent(textMessage)}`;
+                });
             } catch(e) {}
 
             cart = {};
@@ -596,50 +592,4 @@
             container.innerHTML = "";
 
             if (orders.length === 0) {
-                container.innerHTML = `<div class="bg-white p-8 rounded-2xl text-center text-slate-400">Aucune commande reçue.</div>`;
-                return;
-            }
-
-            orders.forEach(o => {
-                let itemsList = o.items ? o.items.map(i => `<li class="text-xs text-slate-700">• ${i.name} : <strong>x${i.quantity} ${i.unit}</strong></li>`).join('') : '';
-                let commentBlock = o.comment ? `<div class="bg-amber-50 border border-amber-200 p-2.5 rounded-xl text-xs text-amber-900 mt-2"><strong>Remarque :</strong> ${o.comment}</div>` : '';
-
-                container.innerHTML += `
-                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h4 class="font-bold text-slate-900">${o.agent}</h4>
-                                <p class="text-xs text-slate-400">${o.location}</p>
-                            </div>
-                            <span class="text-xs font-bold px-2.5 py-1 rounded-full ${o.priority === 'Urgent' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'}">${o.priority}</span>
-                        </div>
-                        <ul class="bg-slate-50 p-3 rounded-xl space-y-1">${itemsList}</ul>
-                        ${commentBlock}
-                        <div class="flex justify-between items-center pt-2">
-                            <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full">${o.status}</span>
-                            <button onclick="updateStatus('${o.id}', 'Prête')" class="text-xs bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-xl cursor-pointer">Marquer Prête</button>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-
-        function updateStatus(id, newStatus) {
-            const ord = orders.find(o => o.id === id);
-            if(ord) {
-                ord.status = newStatus;
-                localStorage.setItem('inguiclean_orders', JSON.stringify(orders));
-                renderOrdersList();
-                updateStats();
-            }
-        }
-
-        function updateStats() {
-            const pendingEl = document.getElementById('stat-pending');
-            const completedEl = document.getElementById('stat-completed');
-            if (pendingEl) pendingEl.textContent = orders.filter(o => o.status === 'En attente').length;
-            if (completedEl) completedEl.textContent = orders.filter(o => o.status === 'Prête').length;
-        }
-    </script>
-</body>
-</html>
+                container.innerHTML = `<div class="bg-white
