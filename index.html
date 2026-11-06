@@ -320,10 +320,18 @@
         let orders = [];
         let cart = {};
 
-        // Démarrage instantané
+        // Démarrage instantané et initialisation robuste
         window.onload = function() {
-            initCloudSync();
+            // Chargement initial immédiat (pour que les listes ne soient jamais vides)
+            catalog = DEFAULT_PRODUCTS.map((p, index) => ({ firestoreId: "local_" + index, ...p }));
+            agents = DEFAULT_AGENTS.map((a, index) => ({ firestoreId: "local_" + index, ...a }));
+            initAgentsSelect();
+            renderCatalog();
             renderCart();
+            renderManagerManagementLists();
+
+            // Lancement de la synchronisation Cloud en arrière-plan
+            initCloudSync();
         };
 
         // SYNCHRONISATION CLOUD EN TEMPS RÉEL
@@ -373,13 +381,6 @@
                     renderCatalog();
                     renderManagerManagementLists();
                 });
-            } else {
-                // Mode secours local si pas de cloud
-                catalog = DEFAULT_PRODUCTS.map((p, index) => ({ firestoreId: "local_" + index, ...p }));
-                agents = DEFAULT_AGENTS.map((a, index) => ({ firestoreId: "local_" + index, ...a }));
-                initAgentsSelect();
-                renderCatalog();
-                renderManagerManagementLists();
             }
         }
 
@@ -497,3 +498,128 @@
             container.innerHTML = "";
 
             let totalItems = 0;
+            keys.forEach(k => totalItems += cart[k]);
+            if (countBadge) countBadge.textContent = `${totalItems} article${totalItems > 1 ? 's' : ''}`;
+
+            if (keys.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">Panier vide</p>`;
+                if (btn) {
+                    btn.disabled = true;
+                    btn.className = "w-full bg-slate-200 text-slate-400 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2";
+                }
+                return;
+            }
+
+            keys.forEach(id => {
+                const p = catalog.find(item => item.firestoreId == id);
+                if (p) {
+                    container.innerHTML += `
+                        <div class="flex justify-between items-center text-xs p-2 bg-slate-50 rounded-lg">
+                            <span class="font-bold text-slate-800">${p.name}</span>
+                            <span class="font-bold text-teal-600">x${cart[id]}</span>
+                        </div>
+                    `;
+                }
+            });
+            if (btn) {
+                btn.disabled = false;
+                btn.className = "w-full bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-teal-500/20 cursor-pointer";
+            }
+        }
+
+        async function submitOrder() {
+            const agent = document.getElementById('agent-name-select').value;
+            const location = document.getElementById('agent-location-input').value;
+            const priorityEl = document.querySelector('input[name="priority"]:checked');
+            const priority = priorityEl ? priorityEl.value : "Normal";
+            const commentInput = document.getElementById('order-comment-input');
+            const comment = commentInput ? commentInput.value.trim() : "";
+
+            const items = Object.keys(cart).map(id => {
+                const p = catalog.find(item => item.firestoreId == id);
+                return { name: p.name, quantity: cart[id], unit: p.unit };
+            });
+
+            const newOrder = {
+                agent: agent,
+                location: location,
+                priority: priority,
+                comment: comment,
+                items: items,
+                status: "En attente",
+                timestamp: Date.now()
+            };
+
+            if (isCloudConnected && db) {
+                await db.collection("orders").add(newOrder);
+            }
+
+            cart = {};
+            if (commentInput) commentInput.value = "";
+            renderCatalog();
+            renderCart();
+            alert("Commande transmise avec succès sur le Cloud !");
+        }
+
+        // GESTION ADMIN CLOUD
+        function renderManagerManagementLists() {
+            const agentsListContainer = document.getElementById('manager-agents-list');
+            const productsListContainer = document.getElementById('manager-products-list');
+
+            if (agentsListContainer) {
+                agentsListContainer.innerHTML = "";
+                agents.forEach(a => {
+                    agentsListContainer.innerHTML += `
+                        <div class="flex justify-between items-center text-xs bg-slate-50 p-2 rounded-xl">
+                            <div><strong>${a.name}</strong> <span class="text-slate-400">(${a.sector})</span></div>
+                            <button onclick="deleteAgent('${a.firestoreId}')" class="text-rose-500 hover:text-rose-700 font-bold px-2 cursor-pointer">✕</button>
+                        </div>
+                    `;
+                });
+            }
+
+            if (productsListContainer) {
+                productsListContainer.innerHTML = "";
+                catalog.forEach(p => {
+                    productsListContainer.innerHTML += `
+                        <div class="flex justify-between items-center text-xs bg-slate-50 p-2 rounded-xl">
+                            <div><strong>${p.name}</strong> <span class="text-slate-400">(${p.unit})</span></div>
+                            <button onclick="deleteProduct('${p.firestoreId}')" class="text-rose-500 hover:text-rose-700 font-bold px-2 cursor-pointer">✕</button>
+                        </div>
+                    `;
+                });
+            }
+        }
+
+        async function addNewAgent() {
+            const nameInput = document.getElementById('new-agent-name');
+            const sectorInput = document.getElementById('new-agent-sector');
+            if (!nameInput || !nameInput.value) {
+                alert("Veuillez entrer un nom d'agent.");
+                return;
+            }
+
+            const newAgent = {
+                name: nameInput.value,
+                sector: sectorInput && sectorInput.value ? sectorInput.value : "Général"
+            };
+
+            if (isCloudConnected && db) {
+                await db.collection("agents").add(newAgent);
+            }
+            nameInput.value = "";
+            if (sectorInput) sectorInput.value = "";
+        }
+
+        async function deleteAgent(firestoreId) {
+            if (firestoreId.startsWith("local_")) {
+                alert("Synchronisation Cloud en cours, réessayez dans un instant.");
+                return;
+            }
+            if (isCloudConnected && db && firestoreId) {
+                await db.collection("agents").doc(firestoreId).delete();
+            }
+        }
+
+        async function addNewProduct() {
+            const nameInput = document.getElementById('new-prod-name');
