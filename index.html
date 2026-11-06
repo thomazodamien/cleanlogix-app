@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CleanLogix Realtime - Gestion & Réapprovisionnement</title>
+    <title>CleanLogix - Gestion & Réapprovisionnement</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -12,26 +12,16 @@
                 extend: {
                     colors: {
                         teal: {
-                            50: '#f0fdfa',
-                            100: '#ccfbf1',
-                            500: '#14b8a6',
-                            600: '#0d9488',
-                            700: '#0f766e',
+                            50: '#f0fdfa', 100: '#ccfbf1', 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e',
                         }
                     }
                 }
             }
         }
     </script>
-    <!-- Google Fonts -->
+    <!-- Google Fonts & Phosphor Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    
-    <!-- SDKs Firebase (Version Compat) -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-
     <style>
         body { font-family: 'Inter', sans-serif; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
@@ -44,7 +34,6 @@
     <header class="bg-slate-900 text-white sticky top-0 z-40 shadow-lg">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
-                <!-- Logo & Indicateur -->
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-400 flex items-center justify-center text-slate-900 font-bold text-xl shadow-lg">
                         <i class="ph-bold ph-sparkle text-2xl text-white"></i>
@@ -52,13 +41,12 @@
                     <div>
                         <h1 class="font-extrabold text-lg leading-tight tracking-tight">Clean<span class="text-teal-400">Logix</span></h1>
                         <p class="text-[11px] text-slate-400 flex items-center gap-1">
-                            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-                            <span>Système Opérationnel</span>
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span>Mode Opérationnel</span>
                         </p>
                     </div>
                 </div>
 
-                <!-- Changement de Rôle -->
                 <div class="flex items-center gap-2 bg-slate-800 p-1 rounded-xl border border-slate-700/60">
                     <button id="btn-role-agent" onclick="switchRole('agent')" class="flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md transition-all cursor-pointer">
                         <i class="ph text-base ph-broom"></i>
@@ -103,9 +91,9 @@
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- CATALOGUE -->
+                <!-- CATALOGUE & ONGLETS -->
                 <div class="lg:col-span-2 space-y-4">
-                    <!-- ONGLETS PAR FAMILLE DE PRODUIT -->
+                    <!-- ONGLETS PAR FAMILLE -->
                     <div class="flex items-center gap-2 overflow-x-auto pb-1 hide-scrollbar" id="category-tabs">
                         <button onclick="setCategoryFilter('Tous')" class="cat-tab px-4 py-2 rounded-xl text-xs font-bold bg-teal-500 text-slate-950 shadow-sm transition-all whitespace-nowrap cursor-pointer">Tous</button>
                         <button onclick="setCategoryFilter('Produits')" class="cat-tab px-4 py-2 rounded-xl text-xs font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 transition-all whitespace-nowrap cursor-pointer">Produits</button>
@@ -114,17 +102,13 @@
                         <button onclick="setCategoryFilter('Matériel')" class="cat-tab px-4 py-2 rounded-xl text-xs font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 transition-all whitespace-nowrap cursor-pointer">Matériel</button>
                     </div>
 
-                    <!-- RECHERCHE -->
                     <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 space-y-3">
                         <div class="relative">
                             <i class="ph ph-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg"></i>
                             <input type="text" id="catalog-search" oninput="renderCatalog()" placeholder="Rechercher un produit..." class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none">
                         </div>
                     </div>
-
-                    <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <!-- Produits dynamiques -->
-                    </div>
+                    <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
                 </div>
 
                 <!-- PANIER -->
@@ -138,9 +122,7 @@
                             <span id="cart-count-badge" class="bg-teal-50 text-teal-700 text-xs font-bold px-2.5 py-0.5 rounded-full border border-teal-200">0 article</span>
                         </div>
 
-                        <div id="cart-items" class="flex-1 overflow-y-auto py-4 space-y-3 min-h-[140px]">
-                            <!-- Contenu Panier -->
-                        </div>
+                        <div id="cart-items" class="flex-1 overflow-y-auto py-4 space-y-3 min-h-[140px]"></div>
 
                         <div class="pt-4 border-t border-slate-100 space-y-4">
                             <div>
@@ -161,10 +143,9 @@
                                 </div>
                             </div>
 
-                            <!-- CHAMP COMMENTAIRE -->
                             <div>
                                 <label class="block text-xs font-bold text-slate-700 mb-1">Commentaire / Remarque :</label>
-                                <textarea id="order-comment-input" rows="2" placeholder="Précisez un détail (ex: clé manquante...)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 outline-none focus:border-teal-500 resize-none"></textarea>
+                                <textarea id="order-comment-input" rows="2" placeholder="Précisez un détail..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 outline-none resize-none"></textarea>
                             </div>
 
                             <button id="btn-submit-order" onclick="submitOrder()" disabled class="w-full bg-slate-200 text-slate-400 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2">
@@ -185,7 +166,7 @@
                     <i class="ph-bold ph-lock-key"></i>
                 </div>
                 <h2 class="text-xl font-extrabold text-slate-900">Espace Responsable</h2>
-                <p class="text-xs text-slate-500 mt-1 mb-6">Veuillez saisir votre code PIN pour accéder à l'administration.</p>
+                <p class="text-xs text-slate-500 mt-1 mb-6">Saisissez votre code PIN (2256) pour accéder à l'administration.</p>
                 <input type="password" id="manager-pin-input" maxlength="4" placeholder="••••" class="w-40 text-center text-2xl font-bold py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none mb-4 tracking-widest">
                 <button onclick="verifyManagerPin()" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl cursor-pointer">Déverrouiller</button>
                 <p id="pin-error-msg" class="text-rose-500 text-xs font-semibold mt-3 hidden">Code PIN incorrect.</p>
@@ -193,15 +174,14 @@
 
             <!-- Contenu Responsable Déverrouillé -->
             <div id="manager-unlocked-content" class="hidden space-y-6">
-                <!-- BANDEAU NTFY -->
                 <div class="bg-gradient-to-r from-teal-500 to-emerald-600 text-slate-950 p-4 rounded-2xl shadow-md flex items-center justify-between gap-4">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-xl bg-slate-900/10 flex items-center justify-center text-2xl flex-shrink-0">
                             <i class="ph-bold ph-bell"></i>
                         </div>
                         <div>
-                            <h4 class="font-extrabold text-sm leading-tight">Notifications Ntfy prêtes</h4>
-                            <p class="text-xs opacity-90">Canal configuré : <strong class="underline">cleanlogix-responsable-2256</strong></p>
+                            <h4 class="font-extrabold text-sm leading-tight">Canal Ntfy actif</h4>
+                            <p class="text-xs opacity-90">Canal : <strong class="underline">cleanlogix-responsable-2256</strong></p>
                         </div>
                     </div>
                 </div>
@@ -273,7 +253,7 @@
         </div>
     </main>
 
-    <!-- LOGIQUE JS -->
+    <!-- SCRIPT LOGIQUE INTERNE -->
     <script>
         const INITIAL_PRODUCTS = [
             { id: "p1", name: "Détergent sols concentré 5L", unit: "Bidon 5L", category: "Produits", icon: "ph-drop" },
@@ -289,54 +269,20 @@
             { id: "a2", name: "Marc Leroy", sector: "Bâtiment B - RDC" }
         ];
 
-        // Chargement sécurisé depuis le stockage local (LocalStorage) ou initialisation par défaut
         let catalog = JSON.parse(localStorage.getItem('cleanlogix_catalog')) || INITIAL_PRODUCTS;
         let agents = JSON.parse(localStorage.getItem('cleanlogix_agents')) || INITIAL_AGENTS;
         let orders = JSON.parse(localStorage.getItem('cleanlogix_orders')) || [];
         let cart = {};
         let currentCategory = "Tous";
-        
-        let db = null;
-        let isCloudReady = false;
         const ntfyTopic = "cleanlogix-responsable-2256";
 
         window.onload = function() {
-            // Initialisation immédiate et garantie de l'interface
             initAgentsSelect();
             renderCatalog();
             renderCart();
             renderManagerManagementLists();
             renderOrdersList();
             updateStats();
-
-            // Connexion facultative à Firebase en arrière-plan (sans bloquer l'UI)
-            try {
-                firebase.initializeApp({
-                    apiKey: "AIzaSyD2Efo5GxOd2UhOWapBtjJTOmS2gnaKkW4",
-                    authDomain: "cleanlogixapp.firebaseapp.com",
-                    projectId: "cleanlogixapp",
-                    storageBucket: "cleanlogixapp.firebasestorage.app",
-                    messagingSenderId: "244706789950",
-                    appId: "1:244706789950:web:ebac4e7b5f9cef70b49f6f"
-                });
-                db = firebase.firestore();
-                isCloudReady = true;
-                
-                // Synchro commandes Cloud en direct
-                db.collection("orders").orderBy("timestamp", "desc").onSnapshot(snap => {
-                    let cloudOrders = [];
-                    snap.forEach(doc => cloudOrders.push({ firestoreId: doc.id, ...doc.data() }));
-                    if(cloudOrders.length > 0) {
-                        orders = cloudOrders;
-                        localStorage.setItem('cleanlogix_orders', JSON.stringify(orders));
-                        renderOrdersList();
-                        updateStats();
-                    }
-                }, err => {});
-
-            } catch (e) {
-                console.log("Mode autonome local actif");
-            }
         };
 
         function switchRole(role) {
@@ -344,8 +290,6 @@
             const viewManager = document.getElementById('view-manager');
             const btnAgent = document.getElementById('btn-role-agent');
             const btnManager = document.getElementById('btn-role-manager');
-
-            if (!viewAgent || !viewManager) return;
 
             if (role === 'agent') {
                 viewAgent.classList.remove('hidden');
@@ -414,7 +358,6 @@
             const grid = document.getElementById('products-grid');
             const searchInput = document.getElementById('catalog-search');
             if (!grid) return;
-            
             grid.innerHTML = "";
             const filter = searchInput ? searchInput.value.toLowerCase() : "";
 
@@ -425,12 +368,12 @@
             });
 
             if (filtered.length === 0) {
-                grid.innerHTML = `<p class="text-xs text-slate-400 col-span-2 text-center py-6">Aucun produit trouvé dans cette catégorie</p>`;
+                grid.innerHTML = `<p class="text-xs text-slate-400 col-span-2 text-center py-6">Aucun produit trouvé</p>`;
                 return;
             }
 
             filtered.forEach(p => {
-                const key = p.id || p.name;
+                const key = p.id;
                 const qty = cart[key] || 0;
                 grid.innerHTML += `
                     <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between gap-4">
@@ -485,7 +428,7 @@
             }
 
             keys.forEach(k => {
-                const p = catalog.find(item => (item.id === k || item.name === k));
+                const p = catalog.find(item => item.id === k);
                 if (p) {
                     container.innerHTML += `
                         <div class="flex justify-between items-center text-xs p-2 bg-slate-50 rounded-lg">
@@ -501,7 +444,7 @@
             }
         }
 
-        async function submitOrder() {
+        function submitOrder() {
             const agent = document.getElementById('agent-name-select').value;
             const location = document.getElementById('agent-location-input').value;
             const priorityEl = document.querySelector('input[name="priority"]:checked');
@@ -510,14 +453,14 @@
             const comment = commentInput ? commentInput.value.trim() : "";
 
             const items = Object.keys(cart).map(k => {
-                const p = catalog.find(item => (item.id === k || item.name === k));
+                const p = catalog.find(item => item.id === k);
                 return { name: p ? p.name : k, quantity: cart[k], unit: p ? p.unit : 'Unité' };
             });
 
             const itemsSummary = items.map(i => `- ${i.name} (x${i.quantity} ${i.unit})`).join('\n');
 
             const newOrder = {
-                firestoreId: "local_" + Date.now(),
+                id: "ord_" + Date.now(),
                 agent: agent,
                 location: location,
                 priority: priority,
@@ -527,20 +470,11 @@
                 timestamp: Date.now()
             };
 
-            // Enregistrement local immédiat
             orders.unshift(newOrder);
             localStorage.setItem('cleanlogix_orders', JSON.stringify(orders));
             renderOrdersList();
             updateStats();
 
-            // Envoi Cloud Firebase si connecté
-            if (isCloudReady && db) {
-                try {
-                    await db.collection("orders").add(newOrder);
-                } catch(e) {}
-            }
-
-            // Envoi de la notification Ntfy.sh
             try {
                 const textMessage = `Agent: ${agent}\nZone: ${location}\nPriorite: ${priority}\nProduits:\n${itemsSummary}\nRemarque: ${comment || 'Aucune'}`;
                 fetch(`https://ntfy.sh/${ntfyTopic}`, {
@@ -555,7 +489,7 @@
             if (commentInput) commentInput.value = "";
             renderCatalog();
             renderCart();
-            alert("Commande transmise avec succès ! Notification envoyée.");
+            alert("Commande transmise avec succès ! Notification envoyée sur l'application ntfy.");
         }
 
         function renderManagerManagementLists() {
@@ -565,11 +499,10 @@
             if (agentsListContainer) {
                 agentsListContainer.innerHTML = "";
                 agents.forEach(a => {
-                    const id = a.id;
                     agentsListContainer.innerHTML += `
                         <div class="flex justify-between items-center text-xs bg-slate-50 p-2 rounded-xl">
                             <div><strong>${a.name}</strong> <span class="text-slate-400">(${a.sector})</span></div>
-                            <button onclick="deleteAgent('${id}')" class="text-rose-500 font-bold px-2 cursor-pointer">✕</button>
+                            <button onclick="deleteAgent('${a.id}')" class="text-rose-500 font-bold px-2 cursor-pointer">✕</button>
                         </div>
                     `;
                 });
@@ -578,11 +511,10 @@
             if (productsListContainer) {
                 productsListContainer.innerHTML = "";
                 catalog.forEach(p => {
-                    const id = p.id;
                     productsListContainer.innerHTML += `
                         <div class="flex justify-between items-center text-xs bg-slate-50 p-2 rounded-xl">
                             <div><strong>${p.name}</strong> <span class="text-slate-400">(${p.unit} - <span class="text-teal-600 font-bold">${p.category || 'Produits'}</span>)</span></div>
-                            <button onclick="deleteProduct('${id}')" class="text-rose-500 font-bold px-2 cursor-pointer">✕</button>
+                            <button onclick="deleteProduct('${p.id}')" class="text-rose-500 font-bold px-2 cursor-pointer">✕</button>
                         </div>
                     `;
                 });
@@ -594,12 +526,10 @@
             const sectorInput = document.getElementById('new-agent-sector');
             if (!nameInput || !nameInput.value) return alert("Entrez un nom.");
 
-            const newAgent = { id: "a_" + Date.now(), name: nameInput.value, sector: sectorInput?.value || "Général" };
-            agents.push(newAgent);
+            agents.push({ id: "a_" + Date.now(), name: nameInput.value, sector: sectorInput?.value || "Général" });
             localStorage.setItem('cleanlogix_agents', JSON.stringify(agents));
             initAgentsSelect();
             renderManagerManagementLists();
-
             nameInput.value = "";
             if(sectorInput) sectorInput.value = "";
         }
@@ -618,19 +548,17 @@
             if (!nameInput || !nameInput.value) return alert("Entrez un produit.");
 
             const category = catSelect ? catSelect.value : "Produits";
-            const newProd = { 
+            catalog.push({ 
                 id: "p_" + Date.now(),
                 name: nameInput.value, 
                 unit: unitInput?.value || "Unité", 
                 category: category,
                 icon: category === 'Poubelle' ? 'ph-trash' : (category === 'EPI' ? 'ph-hand' : 'ph-package')
-            };
+            });
 
-            catalog.push(newProd);
             localStorage.setItem('cleanlogix_catalog', JSON.stringify(catalog));
             renderCatalog();
             renderManagerManagementLists();
-
             nameInput.value = "";
             if(unitInput) unitInput.value = "";
         }
@@ -642,21 +570,12 @@
             renderManagerManagementLists();
         }
 
-        async function clearAllOrders() {
+        function clearAllOrders() {
             if (!confirm("Voulez-vous supprimer toutes les commandes ?")) return;
             orders = [];
             localStorage.setItem('cleanlogix_orders', JSON.stringify(orders));
             renderOrdersList();
             updateStats();
-
-            if (isCloudReady && db) {
-                try {
-                    const snap = await db.collection("orders").get();
-                    const batch = db.batch();
-                    snap.docs.forEach(d => batch.delete(d.ref));
-                    await batch.commit();
-                } catch(e) {}
-            }
         }
 
         function renderOrdersList() {
@@ -677,37 +596,38 @@
                     <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
                         <div class="flex justify-between items-start">
                             <div>
-                                <h4 class="font-bold text-slate-900">${o.agent || 'Inconnu'}</h4>
-                                <p class="text-xs text-slate-400">${o.location || ''}</p>
+                                <h4 class="font-bold text-slate-900">${o.agent}</h4>
+                                <p class="text-xs text-slate-400">${o.location}</p>
                             </div>
-                            <span class="text-xs font-bold px-2.5 py-1 rounded-full ${o.priority === 'Urgent' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'}">${o.priority || 'Normal'}</span>
+                            <span class="text-xs font-bold px-2.5 py-1 rounded-full ${o.priority === 'Urgent' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'}">${o.priority}</span>
                         </div>
                         <ul class="bg-slate-50 p-3 rounded-xl space-y-1">${itemsList}</ul>
                         ${commentBlock}
                         <div class="flex justify-between items-center pt-2">
-                            <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full">${o.status || 'En attente'}</span>
-                            <button onclick="updateStatus('${o.firestoreId || o.id}', 'Prête')" class="text-xs bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-xl cursor-pointer">Marquer Prête</button>
+                            <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full">${o.status}</span>
+                            <button onclick="updateStatus('${o.id}', 'Prête')" class="text-xs bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-xl cursor-pointer">Marquer Prête</button>
                         </div>
                     </div>
                 `;
             });
         }
 
-        async function updateStatus(id, newStatus) {
-            const ord = orders.find(o => (o.firestoreId === id || o.id === id));
+        function updateStatus(id, newStatus) {
+            const ord = orders.find(o => o.id === id);
             if(ord) {
                 ord.status = newStatus;
                 localStorage.setItem('cleanlogix_orders', JSON.stringify(orders));
                 renderOrdersList();
                 updateStats();
             }
-
-            if (isCloudReady && db && !id.startsWith("local_")) {
-                try {
-                    await db.collection("orders").doc(id).update({ status: newStatus });
-                } catch(e) {}
-            }
         }
 
         function updateStats() {
-            const pendingEl = document.getElementById('stat
+            const pendingEl = document.getElementById('stat-pending');
+            const completedEl = document.getElementById('stat-completed');
+            if (pendingEl) pendingEl.textContent = orders.filter(o => o.status === 'En attente').length;
+            if (completedEl) completedEl.textContent = orders.filter(o => o.status === 'Prête').length;
+        }
+    </script>
+</body>
+</html>
