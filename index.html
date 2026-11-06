@@ -42,7 +42,7 @@
                         <h1 class="font-extrabold text-lg leading-tight tracking-tight">Ingui<span class="text-teal-400">Clean</span></h1>
                         <p class="text-[11px] text-slate-400 flex items-center gap-1">
                             <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                            <span>Synchronisation Cloud Active</span>
+                            <span>Cloud Synced (Multi-téléphones)</span>
                         </p>
                     </div>
                 </div>
@@ -253,7 +253,7 @@
         </div>
     </main>
 
-    <!-- LOGIQUE FIREBASE AVEC SYNCHRONISATION EN TEMPS RÉEL -->
+    <!-- LOGIQUE CLOUD EN TEMPS RÉEL (FIREBASE) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
@@ -294,7 +294,7 @@
             renderOrdersList();
             updateStats();
 
-            // Écoute des modifications en temps réel sur tous les appareils connectés
+            // Écouteur en temps réel Firebase : met à jour automatiquement tous les téléphones connectés
             onValue(ref(db, 'catalog'), (snapshot) => {
                 const data = snapshot.val();
                 if (data) {
@@ -571,22 +571,17 @@
             }
         }
 
+        // Envoi direct dans Firebase : la synchronisation se fera automatiquement sur tous les téléphones
         window.addNewAgent = function() {
             const nameInput = document.getElementById('new-agent-name');
             const sectorInput = document.getElementById('new-agent-sector');
             if (!nameInput || !nameInput.value) return alert("Entrez un nom.");
 
             const newAgentId = "a_" + Date.now();
-            const newAgentData = {
+            set(ref(db, 'agents/' + newAgentId), {
                 name: nameInput.value,
                 sector: sectorInput?.value || "Général"
-            };
-
-            // Enregistrement dans Firebase ET mise à jour locale immédiate de l'écran
-            set(ref(db, 'agents/' + newAgentId), newAgentData);
-            window.agents.push({ id: newAgentId, ...newAgentData });
-            initAgentsSelect();
-            renderManagerManagementLists();
+            });
 
             nameInput.value = "";
             if(sectorInput) sectorInput.value = "";
@@ -594,9 +589,6 @@
 
         window.deleteAgent = function(id) {
             remove(ref(db, 'agents/' + id));
-            window.agents = window.agents.filter(a => a.id !== id);
-            initAgentsSelect();
-            renderManagerManagementLists();
         }
 
         window.addNewProduct = function() {
@@ -607,18 +599,12 @@
 
             const category = catSelect ? catSelect.value : "Produits";
             const newProdId = "p_" + Date.now();
-            const newProdData = {
+            set(ref(db, 'catalog/' + newProdId), {
                 name: nameInput.value, 
                 unit: unitInput?.value || "Unité", 
                 category: category,
                 icon: category === 'Poubelle' ? 'ph-trash' : (category === 'EPI' ? 'ph-hand' : 'ph-package')
-            };
-
-            // Enregistrement dans Firebase ET mise à jour locale immédiate de l'écran
-            set(ref(db, 'catalog/' + newProdId), newProdData);
-            window.catalog.push({ id: newProdId, ...newProdData });
-            renderCatalog();
-            renderManagerManagementLists();
+            });
 
             nameInput.value = "";
             if(unitInput) unitInput.value = "";
@@ -626,17 +612,11 @@
 
         window.deleteProduct = function(id) {
             remove(ref(db, 'catalog/' + id));
-            window.catalog = window.catalog.filter(p => p.id !== id);
-            renderCatalog();
-            renderManagerManagementLists();
         }
 
         window.clearAllOrders = function() {
             if (!confirm("Voulez-vous supprimer toutes les commandes ?")) return;
             remove(ref(db, 'orders'));
-            window.orders = [];
-            renderOrdersList();
-            updateStats();
         }
 
         function renderOrdersList() {
@@ -675,10 +655,6 @@
 
         window.updateStatus = function(id, newStatus) {
             set(ref(db, `orders/${id}/status`), newStatus);
-            const ord = window.orders.find(o => o.id === id);
-            if (ord) ord.status = newStatus;
-            renderOrdersList();
-            updateStats();
         }
 
         function updateStats() {
