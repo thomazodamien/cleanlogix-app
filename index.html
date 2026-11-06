@@ -42,7 +42,7 @@
                         <h1 class="font-extrabold text-lg leading-tight tracking-tight">Clean<span class="text-teal-400">Logix</span></h1>
                         <p class="text-[11px] text-slate-400 flex items-center gap-1">
                             <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                            <span>Mode Opérationnel</span>
+                            <span>Mode Opérationnel Stable</span>
                         </p>
                     </div>
                 </div>
@@ -203,7 +203,7 @@
                     </div>
                 </div>
 
-                <!-- COMMANDES (EN HAUT) -->
+                <!-- COMMANDES -->
                 <div class="space-y-4">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <h3 class="font-extrabold text-slate-900 text-xl flex items-center gap-2">
@@ -217,7 +217,7 @@
                     <div id="orders-list-container" class="space-y-4"></div>
                 </div>
 
-                <!-- ADMINISTRATION (EN DESSOUS) -->
+                <!-- ADMINISTRATION -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-slate-200">
                     <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                         <h3 class="font-bold text-slate-900 flex items-center gap-2">
@@ -269,7 +269,6 @@
             { id: "a2", name: "Marc Leroy", sector: "Bâtiment B - RDC" }
         ];
 
-        // Charger depuis localStorage ou utiliser les valeurs par défaut
         let catalog = JSON.parse(localStorage.getItem('cleanlogix_catalog')) || INITIAL_PRODUCTS;
         let agents = JSON.parse(localStorage.getItem('cleanlogix_agents')) || INITIAL_AGENTS;
         let orders = JSON.parse(localStorage.getItem('cleanlogix_orders')) || [];
@@ -525,9 +524,15 @@
         function addNewAgent() {
             const nameInput = document.getElementById('new-agent-name');
             const sectorInput = document.getElementById('new-agent-sector');
-            if (!nameInput || !nameInput.value) return alert("Entrez un nom.");
+            if (!nameInput || !nameInput.value.trim()) return alert("Entrez un nom d'agent.");
 
-            agents.push({ id: "a_" + Date.now(), name: nameInput.value, sector: sectorInput?.value || "Général" });
+            const newAgent = {
+                id: "a_" + Date.now(),
+                name: nameInput.value.trim(),
+                sector: sectorInput?.value.trim() || "Général"
+            };
+
+            agents.push(newAgent);
             localStorage.setItem('cleanlogix_agents', JSON.stringify(agents));
             initAgentsSelect();
             renderManagerManagementLists();
@@ -546,17 +551,18 @@
             const nameInput = document.getElementById('new-prod-name');
             const unitInput = document.getElementById('new-prod-unit');
             const catSelect = document.getElementById('new-prod-cat');
-            if (!nameInput || !nameInput.value) return alert("Entrez un produit.");
+            if (!nameInput || !nameInput.value.trim()) return alert("Entrez un nom de produit.");
 
             const category = catSelect ? catSelect.value : "Produits";
-            catalog.push({ 
+            const newProd = {
                 id: "p_" + Date.now(),
-                name: nameInput.value, 
-                unit: unitInput?.value || "Unité", 
+                name: nameInput.value.trim(),
+                unit: unitInput?.value.trim() || "Unité",
                 category: category,
                 icon: category === 'Poubelle' ? 'ph-trash' : (category === 'EPI' ? 'ph-hand' : 'ph-package')
-            });
+            };
 
+            catalog.push(newProd);
             localStorage.setItem('cleanlogix_catalog', JSON.stringify(catalog));
             renderCatalog();
             renderManagerManagementLists();
@@ -606,7 +612,7 @@
                         ${commentBlock}
                         <div class="flex justify-between items-center pt-2">
                             <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full">${o.status}</span>
-                            <button onclick="updateStatus('${o.id}', 'Prête')" class="text-xs bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-xl cursor-pointer">Marquer Prête</button>
+                            <button onclick="updateStatus('${o.id}', 'Prête')" class="text-xs bg-emerald-600 text-white font-bold px-3 py-1 rounded-xl cursor-pointer">Marquer Prête</button>
                         </div>
                     </div>
                 `;
@@ -615,7 +621,7 @@
 
         function updateStatus(id, newStatus) {
             const ord = orders.find(o => o.id === id);
-            if(ord) {
+            if (ord) {
                 ord.status = newStatus;
                 localStorage.setItem('cleanlogix_orders', JSON.stringify(orders));
                 renderOrdersList();
