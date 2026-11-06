@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CleanLogix - Gestion & Réapprovisionnement</title>
+    <title>InguiClean - Gestion & Réapprovisionnement</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -39,7 +39,7 @@
                         <i class="ph-bold ph-sparkle text-2xl text-white"></i>
                     </div>
                     <div>
-                        <h1 class="font-extrabold text-lg leading-tight tracking-tight">Clean<span class="text-teal-400">Logix</span></h1>
+                        <h1 class="font-extrabold text-lg leading-tight tracking-tight">Ingui<span class="text-teal-400">Clean</span></h1>
                         <p class="text-[11px] text-slate-400 flex items-center gap-1">
                             <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                             <span>Mode Opérationnel</span>
@@ -181,7 +181,7 @@
                         </div>
                         <div>
                             <h4 class="font-extrabold text-sm leading-tight">Canal Ntfy actif</h4>
-                            <p class="text-xs opacity-90">Canal : <strong class="underline">cleanlogix-responsable-2256</strong></p>
+                            <p class="text-xs opacity-90">Canal : <strong class="underline">inguiclean-responsable-2256</strong></p>
                         </div>
                     </div>
                 </div>
@@ -270,12 +270,12 @@
         ];
 
         // Charger depuis localStorage ou utiliser les valeurs par défaut
-        let catalog = JSON.parse(localStorage.getItem('cleanlogix_catalog')) || INITIAL_PRODUCTS;
-        let agents = JSON.parse(localStorage.getItem('cleanlogix_agents')) || INITIAL_AGENTS;
-        let orders = JSON.parse(localStorage.getItem('cleanlogix_orders')) || [];
+        let catalog = JSON.parse(localStorage.getItem('inguiclean_catalog')) || INITIAL_PRODUCTS;
+        let agents = JSON.parse(localStorage.getItem('inguiclean_agents')) || INITIAL_AGENTS;
+        let orders = JSON.parse(localStorage.getItem('inguiclean_orders')) || [];
         let cart = {};
         let currentCategory = "Tous";
-        const ntfyTopic = "cleanlogix-responsable-2256";
+        const ntfyTopic = "inguiclean-responsable-2256";
 
         window.onload = function() {
             initAgentsSelect();
@@ -458,7 +458,7 @@
                 return { name: p ? p.name : k, quantity: cart[k], unit: p ? p.unit : 'Unité' };
             });
 
-            const itemsSummary = items.map(i => `- ${i.name} (x${i.quantity} ${i.unit})`).join('\n');
+            const itemsSummary = items.map(i => `- ${i.name} (x${i.quantity}${i.unit})`).join('\n');
 
             const newOrder = {
                 id: "ord_" + Date.now(),
@@ -472,13 +472,12 @@
             };
 
             orders.unshift(newOrder);
-            localStorage.setItem('cleanlogix_orders', JSON.stringify(orders));
+            localStorage.setItem('inguiclean_orders', JSON.stringify(orders));
             renderOrdersList();
             updateStats();
 
             try {
-                const textMessage = `Agent: ${agent}\nZone: ${location}\nPriorite: ${priority}\nProduits:\n${itemsSummary}\nRemarque: ${comment || 'Aucune'}`;
-                fetch(`https://ntfy.sh/${ntfyTopic}`, {
+                const textMessage = `Agent: ${agent}\nZone:${location}\nPriorite: ${priority}\nProduits:\n${itemsSummary}\nRemarque: ${comment \vert{}\vert{} 'Aucune'}`; fetch(`https://ntfy.sh/${ntfyTopic}`, {
                     method: 'POST',
                     mode: 'no-cors',
                     headers: { 'Content-Type': 'text/plain' },
@@ -501,134 +500,4 @@
                 agentsListContainer.innerHTML = "";
                 agents.forEach(a => {
                     agentsListContainer.innerHTML += `
-                        <div class="flex justify-between items-center text-xs bg-slate-50 p-2 rounded-xl">
-                            <div><strong>${a.name}</strong> <span class="text-slate-400">(${a.sector})</span></div>
-                            <button onclick="deleteAgent('${a.id}')" class="text-rose-500 font-bold px-2 cursor-pointer">✕</button>
-                        </div>
-                    `;
-                });
-            }
-
-            if (productsListContainer) {
-                productsListContainer.innerHTML = "";
-                catalog.forEach(p => {
-                    productsListContainer.innerHTML += `
-                        <div class="flex justify-between items-center text-xs bg-slate-50 p-2 rounded-xl">
-                            <div><strong>${p.name}</strong> <span class="text-slate-400">(${p.unit} - <span class="text-teal-600 font-bold">${p.category || 'Produits'}</span>)</span></div>
-                            <button onclick="deleteProduct('${p.id}')" class="text-rose-500 font-bold px-2 cursor-pointer">✕</button>
-                        </div>
-                    `;
-                });
-            }
-        }
-
-        function addNewAgent() {
-            const nameInput = document.getElementById('new-agent-name');
-            const sectorInput = document.getElementById('new-agent-sector');
-            if (!nameInput || !nameInput.value) return alert("Entrez un nom.");
-
-            agents.push({ id: "a_" + Date.now(), name: nameInput.value, sector: sectorInput?.value || "Général" });
-            localStorage.setItem('cleanlogix_agents', JSON.stringify(agents));
-            initAgentsSelect();
-            renderManagerManagementLists();
-            nameInput.value = "";
-            if(sectorInput) sectorInput.value = "";
-        }
-
-        function deleteAgent(id) {
-            agents = agents.filter(a => a.id !== id);
-            localStorage.setItem('cleanlogix_agents', JSON.stringify(agents));
-            initAgentsSelect();
-            renderManagerManagementLists();
-        }
-
-        function addNewProduct() {
-            const nameInput = document.getElementById('new-prod-name');
-            const unitInput = document.getElementById('new-prod-unit');
-            const catSelect = document.getElementById('new-prod-cat');
-            if (!nameInput || !nameInput.value) return alert("Entrez un produit.");
-
-            const category = catSelect ? catSelect.value : "Produits";
-            catalog.push({ 
-                id: "p_" + Date.now(),
-                name: nameInput.value, 
-                unit: unitInput?.value || "Unité", 
-                category: category,
-                icon: category === 'Poubelle' ? 'ph-trash' : (category === 'EPI' ? 'ph-hand' : 'ph-package')
-            });
-
-            localStorage.setItem('cleanlogix_catalog', JSON.stringify(catalog));
-            renderCatalog();
-            renderManagerManagementLists();
-            nameInput.value = "";
-            if(unitInput) unitInput.value = "";
-        }
-
-        function deleteProduct(id) {
-            catalog = catalog.filter(p => p.id !== id);
-            localStorage.setItem('cleanlogix_catalog', JSON.stringify(catalog));
-            renderCatalog();
-            renderManagerManagementLists();
-        }
-
-        function clearAllOrders() {
-            if (!confirm("Voulez-vous supprimer toutes les commandes ?")) return;
-            orders = [];
-            localStorage.setItem('cleanlogix_orders', JSON.stringify(orders));
-            renderOrdersList();
-            updateStats();
-        }
-
-        function renderOrdersList() {
-            const container = document.getElementById('orders-list-container');
-            if (!container) return;
-            container.innerHTML = "";
-
-            if (orders.length === 0) {
-                container.innerHTML = `<div class="bg-white p-8 rounded-2xl text-center text-slate-400">Aucune commande reçue.</div>`;
-                return;
-            }
-
-            orders.forEach(o => {
-                let itemsList = o.items ? o.items.map(i => `<li class="text-xs text-slate-700">• ${i.name} : <strong>x${i.quantity} ${i.unit}</strong></li>`).join('') : '';
-                let commentBlock = o.comment ? `<div class="bg-amber-50 border border-amber-200 p-2.5 rounded-xl text-xs text-amber-900 mt-2"><strong>Remarque :</strong> ${o.comment}</div>` : '';
-
-                container.innerHTML += `
-                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h4 class="font-bold text-slate-900">${o.agent}</h4>
-                                <p class="text-xs text-slate-400">${o.location}</p>
-                            </div>
-                            <span class="text-xs font-bold px-2.5 py-1 rounded-full ${o.priority === 'Urgent' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'}">${o.priority}</span>
-                        </div>
-                        <ul class="bg-slate-50 p-3 rounded-xl space-y-1">${itemsList}</ul>
-                        ${commentBlock}
-                        <div class="flex justify-between items-center pt-2">
-                            <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full">${o.status}</span>
-                            <button onclick="updateStatus('${o.id}', 'Prête')" class="text-xs bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-xl cursor-pointer">Marquer Prête</button>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-
-        function updateStatus(id, newStatus) {
-            const ord = orders.find(o => o.id === id);
-            if(ord) {
-                ord.status = newStatus;
-                localStorage.setItem('cleanlogix_orders', JSON.stringify(orders));
-                renderOrdersList();
-                updateStats();
-            }
-        }
-
-        function updateStats() {
-            const pendingEl = document.getElementById('stat-pending');
-            const completedEl = document.getElementById('stat-completed');
-            if (pendingEl) pendingEl.textContent = orders.filter(o => o.status === 'En attente').length;
-            if (completedEl) completedEl.textContent = orders.filter(o => o.status === 'Prête').length;
-        }
-    </script>
-</body>
-</html>
+                        <div class
