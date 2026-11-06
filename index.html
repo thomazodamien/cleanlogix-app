@@ -42,7 +42,7 @@
                         <h1 class="font-extrabold text-lg leading-tight tracking-tight">Ingui<span class="text-teal-400">Clean</span></h1>
                         <p class="text-[11px] text-slate-400 flex items-center gap-1">
                             <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                            <span>Mode Opérationnel</span>
+                            <span>Synchronisation Cloud Active</span>
                         </p>
                     </div>
                 </div>
@@ -253,7 +253,7 @@
         </div>
     </main>
 
-    <!-- LOGIQUE GLOBALE INTERNE (FIREBASE & SECOURS) -->
+    <!-- LOGIQUE FIREBASE AVEC SYNCHRONISATION EN TEMPS RÉEL -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
@@ -279,7 +279,6 @@
             { id: "a2", name: "Marc Leroy", sector: "Bâtiment B - RDC" }
         ];
 
-        // Charger immédiatement les données locales pour éviter l'écran vide
         window.catalog = JSON.parse(localStorage.getItem('inguiclean_catalog')) || INITIAL_PRODUCTS;
         window.agents = JSON.parse(localStorage.getItem('inguiclean_agents')) || INITIAL_AGENTS;
         window.orders = JSON.parse(localStorage.getItem('inguiclean_orders')) || [];
@@ -287,7 +286,6 @@
         window.currentCategory = "Tous";
         const ntfyTopic = "inguiclean-responsable-2256";
 
-        // Initialisation synchrone de l'interface
         window.addEventListener('DOMContentLoaded', () => {
             initAgentsSelect();
             renderCatalog();
@@ -296,12 +294,16 @@
             renderOrdersList();
             updateStats();
 
-            // Synchronisation Firebase en arrière-plan
+            // Écoute des modifications en temps réel sur tous les appareils connectés
             onValue(ref(db, 'catalog'), (snapshot) => {
                 const data = snapshot.val();
                 if (data) {
                     window.catalog = Object.keys(data).map(key => ({ id: key, ...data[key] }));
                     localStorage.setItem('inguiclean_catalog', JSON.stringify(window.catalog));
+                } else {
+                    INITIAL_PRODUCTS.forEach(p => {
+                        set(ref(db, 'catalog/' + p.id), { name: p.name, unit: p.unit, category: p.category, icon: p.icon });
+                    });
                 }
                 renderCatalog();
                 renderManagerManagementLists();
@@ -312,6 +314,10 @@
                 if (data) {
                     window.agents = Object.keys(data).map(key => ({ id: key, ...data[key] }));
                     localStorage.setItem('inguiclean_agents', JSON.stringify(window.agents));
+                } else {
+                    INITIAL_AGENTS.forEach(a => {
+                        set(ref(db, 'agents/' + a.id), { name: a.name, sector: a.sector });
+                    });
                 }
                 initAgentsSelect();
                 renderManagerManagementLists();
@@ -571,10 +577,16 @@
             if (!nameInput || !nameInput.value) return alert("Entrez un nom.");
 
             const newAgentId = "a_" + Date.now();
-            set(ref(db, 'agents/' + newAgentId), {
+            const newAgentData = {
                 name: nameInput.value,
                 sector: sectorInput?.value || "Général"
-            });
+            };
+
+            // Enregistrement dans Firebase ET mise à jour locale immédiate de l'écran
+            set(ref(db, 'agents/' + newAgentId), newAgentData);
+            window.agents.push({ id: newAgentId, ...newAgentData });
+            initAgentsSelect();
+            renderManagerManagementLists();
 
             nameInput.value = "";
             if(sectorInput) sectorInput.value = "";
@@ -582,6 +594,9 @@
 
         window.deleteAgent = function(id) {
             remove(ref(db, 'agents/' + id));
+            window.agents = window.agents.filter(a => a.id !== id);
+            initAgentsSelect();
+            renderManagerManagementLists();
         }
 
         window.addNewProduct = function() {
@@ -592,12 +607,18 @@
 
             const category = catSelect ? catSelect.value : "Produits";
             const newProdId = "p_" + Date.now();
-            set(ref(db, 'catalog/' + newProdId), {
+            const newProdData = {
                 name: nameInput.value, 
                 unit: unitInput?.value || "Unité", 
                 category: category,
                 icon: category === 'Poubelle' ? 'ph-trash' : (category === 'EPI' ? 'ph-hand' : 'ph-package')
-            });
+            };
+
+            // Enregistrement dans Firebase ET mise à jour locale immédiate de l'écran
+            set(ref(db, 'catalog/' + newProdId), newProdData);
+            window.catalog.push({ id: newProdId, ...newProdData });
+            renderCatalog();
+            renderManagerManagementLists();
 
             nameInput.value = "";
             if(unitInput) unitInput.value = "";
@@ -605,11 +626,17 @@
 
         window.deleteProduct = function(id) {
             remove(ref(db, 'catalog/' + id));
+            window.catalog = window.catalog.filter(p => p.id !== id);
+            renderCatalog();
+            renderManagerManagementLists();
         }
 
         window.clearAllOrders = function() {
             if (!confirm("Voulez-vous supprimer toutes les commandes ?")) return;
             remove(ref(db, 'orders'));
+            window.orders = [];
+            renderOrdersList();
+            updateStats();
         }
 
         function renderOrdersList() {
@@ -648,6 +675,10 @@
 
         window.updateStatus = function(id, newStatus) {
             set(ref(db, `orders/${id}/status`), newStatus);
+            const ord = window.orders.find(o => o.id === id);
+            if (ord) ord.status = newStatus;
+            renderOrdersList();
+            updateStats();
         }
 
         function updateStats() {
