@@ -34,51 +34,24 @@
 
     <style>
         body { font-family: 'Inter', sans-serif; }
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="h-full text-slate-800 flex flex-col antialiased selection:bg-teal-500 selection:text-white pb-16 md:pb-0">
-
-    <!-- INITIALISATION FIREBASE -->
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyD2Efo5GxOd2UhOWapBtjJTOmS2gnaKkW4",
-            authDomain: "cleanlogixapp.firebaseapp.com",
-            projectId: "cleanlogixapp",
-            storageBucket: "cleanlogixapp.firebasestorage.app",
-            messagingSenderId: "244706789950",
-            appId: "1:244706789950:web:ebac4e7b5f9cef70b49f6f",
-            measurementId: "G-118254J5X4"
-        };
-
-        let db = null;
-        let isCloudConnected = false;
-
-        try {
-            firebase.initializeApp(firebaseConfig);
-            db = firebase.firestore();
-            isCloudConnected = true;
-            console.log("Connecté à la base de données Firebase CleanLogix !");
-        } catch (e) {
-            console.error("Erreur d'initialisation Firebase :", e);
-        }
-    </script>
 
     <!-- HEADER / NAVIGATION -->
     <header class="bg-slate-900 text-white sticky top-0 z-40 shadow-lg">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
-                <!-- Logo & Indicateur Cloud -->
+                <!-- Logo & Indicateur -->
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-400 flex items-center justify-center text-slate-900 font-bold text-xl shadow-lg shadow-teal-500/20">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-400 flex items-center justify-center text-slate-900 font-bold text-xl shadow-lg">
                         <i class="ph-bold ph-sparkle text-2xl text-white"></i>
                     </div>
                     <div>
                         <h1 class="font-extrabold text-lg leading-tight tracking-tight">Clean<span class="text-teal-400">Logix</span></h1>
                         <p class="text-[11px] text-slate-400 flex items-center gap-1">
-                            <span id="sync-dot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                            <span id="sync-status">Cloud Direct Connecté</span>
+                            <span id="sync-dot" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                            <span id="sync-status">Mode Prêt</span>
                         </p>
                     </div>
                 </div>
@@ -92,44 +65,18 @@
                     <button id="btn-role-manager" onclick="switchRole('manager')" class="relative flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white transition-all cursor-pointer">
                         <i class="ph text-base ph-clipboard-text"></i>
                         <span>Responsable</span>
-                        <span id="nav-unread-badge" class="hidden absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-extrabold text-white shadow-md animate-bounce">0</span>
                     </button>
                 </div>
             </div>
         </div>
     </header>
 
-    <!-- NOTIFICATION PUSH IN-APP -->
-    <div id="push-notification" class="fixed top-20 right-4 left-4 sm:left-auto sm:w-96 z-50 transform translate-y-[-180%] transition-transform duration-500 ease-out pointer-events-none">
-        <div class="bg-slate-900/95 backdrop-blur-md text-white p-4 rounded-2xl shadow-2xl border border-teal-500/40 flex gap-3.5 items-start pointer-events-auto">
-            <div class="p-2.5 bg-teal-500/20 text-teal-400 rounded-xl flex-shrink-0">
-                <i class="ph-fill ph-bell-ringing text-2xl animate-pulse"></i>
-            </div>
-            <div class="flex-1 min-w-0">
-                <div class="flex items-center justify-between gap-2">
-                    <span class="text-[10px] font-bold text-teal-400 uppercase tracking-wider">Nouvelle Commande !</span>
-                    <span class="text-[10px] text-slate-400">En direct</span>
-                </div>
-                <h4 id="push-title" class="text-sm font-bold text-white mt-0.5 truncate">Commande reçue</h4>
-                <p id="push-body" class="text-xs text-slate-300 mt-1 line-clamp-2">Chargement du détail...</p>
-                <div class="mt-3 flex items-center gap-2">
-                    <button onclick="switchRole('manager'); dismissPushNotification();" class="text-xs bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer">
-                        Ouvrir et préparer
-                    </button>
-                </div>
-            </div>
-            <button onclick="dismissPushNotification()" class="text-slate-400 hover:text-white cursor-pointer">
-                <i class="ph ph-x text-lg"></i>
-            </button>
-        </div>
-    </div>
-
     <!-- MAIN WRAPPER -->
     <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
 
         <!-- VUE 1 : AGENT -->
         <div id="view-agent" class="space-y-6">
-            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
                         <i class="ph-duotone ph-hand-waving text-teal-600 text-2xl"></i>
@@ -156,7 +103,7 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <!-- CATALOGUE -->
                 <div class="lg:col-span-2 space-y-5">
-                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80 space-y-3">
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 space-y-3">
                         <div class="relative">
                             <i class="ph ph-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg"></i>
                             <input type="text" id="catalog-search" oninput="renderCatalog()" placeholder="Rechercher un produit..." class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none">
@@ -169,7 +116,7 @@
 
                 <!-- PANIER -->
                 <div class="lg:col-span-1">
-                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 sticky top-24 flex flex-col max-h-[calc(100vh-7rem)]">
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sticky top-24 flex flex-col">
                         <div class="flex items-center justify-between pb-4 border-b border-slate-100">
                             <h3 class="font-bold text-slate-900 flex items-center gap-2">
                                 <i class="ph-bold ph-shopping-cart text-teal-600 text-lg"></i>
@@ -204,7 +151,7 @@
                             <!-- CHAMP COMMENTAIRE -->
                             <div>
                                 <label class="block text-xs font-bold text-slate-700 mb-1">Commentaire / Remarque :</label>
-                                <textarea id="order-comment-input" rows="2" placeholder="Précisez un détail (ex: clé manquante, pièce spécifique...)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 outline-none focus:border-teal-500 resize-none"></textarea>
+                                <textarea id="order-comment-input" rows="2" placeholder="Précisez un détail (ex: clé manquante...)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 outline-none focus:border-teal-500 resize-none"></textarea>
                             </div>
 
                             <button id="btn-submit-order" onclick="submitOrder()" disabled class="w-full bg-slate-200 text-slate-400 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2">
@@ -233,23 +180,10 @@
 
             <!-- Contenu Responsable Déverrouillé -->
             <div id="manager-unlocked-content" class="hidden space-y-6">
-                <!-- BANDEAU INFORMATIONS NTFY -->
-                <div class="bg-gradient-to-r from-teal-500 to-emerald-600 text-slate-950 p-4 rounded-2xl shadow-md flex items-center justify-between gap-4">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-slate-900/10 flex items-center justify-center text-2xl flex-shrink-0">
-                            <i class="ph-bold ph-bell"></i>
-                        </div>
-                        <div>
-                            <h4 class="font-extrabold text-sm leading-tight">Notifications mobile actives via Ntfy</h4>
-                            <p class="text-xs opacity-90">Canal de l'application mobile : <strong class="underline">cleanlogix-responsable-2256</strong></p>
-                        </div>
-                    </div>
-                </div>
-
                 <div class="bg-slate-900 text-white p-6 rounded-2xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div>
-                        <h2 class="text-2xl font-black">Suivi des Demandes & Administration Cloud</h2>
-                        <p class="text-slate-400 text-xs sm:text-sm mt-1">Gérez vos commandes, ajoutez vos agents et vos produits en temps réel.</p>
+                        <h2 class="text-2xl font-black">Suivi des Demandes & Administration</h2>
+                        <p class="text-slate-400 text-xs sm:text-sm mt-1">Gérez vos commandes, agents et produits.</p>
                     </div>
                     <div class="flex items-center gap-3">
                         <div class="bg-slate-800 p-3 rounded-xl text-center min-w-[85px]">
@@ -263,7 +197,7 @@
                     </div>
                 </div>
 
-                <!-- 1. PARTIE COMMANDES (EN HAUT) -->
+                <!-- COMMANDES (EN HAUT) -->
                 <div class="space-y-4">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <h3 class="font-extrabold text-slate-900 text-xl flex items-center gap-2">
@@ -274,35 +208,31 @@
                             <span>Vider tout l'historique</span>
                         </button>
                     </div>
-                    <div id="orders-list-container" class="space-y-4">
-                        <!-- Liste des commandes reçues -->
-                    </div>
+                    <div id="orders-list-container" class="space-y-4"></div>
                 </div>
 
-                <!-- 2. PARTIE ADMINISTRATION (EN DESSOUS) -->
+                <!-- ADMINISTRATION (EN DESSOUS) -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-slate-200">
-                    <!-- Gestion des Agents -->
                     <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                         <h3 class="font-bold text-slate-900 flex items-center gap-2">
-                            <i class="ph-bold ph-users text-teal-600 text-lg"></i> Gestion des Agents (Cloud)
+                            <i class="ph-bold ph-users text-teal-600 text-lg"></i> Gestion des Agents
                         </h3>
                         <div class="space-y-2">
-                            <input type="text" id="new-agent-name" placeholder="Nom de l'agent (ex: Thomas B.)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none">
-                            <input type="text" id="new-agent-sector" placeholder="Zone (ex: Bâtiment C)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none">
-                            <button onclick="addNewAgent()" class="w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-2.5 rounded-xl text-xs transition-all cursor-pointer">Ajouter l'agent</button>
+                            <input type="text" id="new-agent-name" placeholder="Nom de l'agent" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none">
+                            <input type="text" id="new-agent-sector" placeholder="Zone" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none">
+                            <button onclick="addNewAgent()" class="w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-2.5 rounded-xl text-xs cursor-pointer">Ajouter l'agent</button>
                         </div>
                         <div id="manager-agents-list" class="space-y-2 max-h-40 overflow-y-auto pt-2 border-t border-slate-100"></div>
                     </div>
 
-                    <!-- Gestion des Produits -->
                     <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                         <h3 class="font-bold text-slate-900 flex items-center gap-2">
-                            <i class="ph-bold ph-package text-teal-600 text-lg"></i> Catalogue des Produits (Cloud)
+                            <i class="ph-bold ph-package text-teal-600 text-lg"></i> Catalogue des Produits
                         </h3>
                         <div class="space-y-2">
                             <input type="text" id="new-prod-name" placeholder="Nom du produit" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none">
-                            <input type="text" id="new-prod-unit" placeholder="Unité (ex: Bidon 5L, Carton...)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none">
-                            <button onclick="addNewProduct()" class="w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-2.5 rounded-xl text-xs transition-all cursor-pointer">Ajouter au catalogue</button>
+                            <input type="text" id="new-prod-unit" placeholder="Unité" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none">
+                            <button onclick="addNewProduct()" class="w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-2.5 rounded-xl text-xs cursor-pointer">Ajouter au catalogue</button>
                         </div>
                         <div id="manager-products-list" class="space-y-2 max-h-40 overflow-y-auto pt-2 border-t border-slate-100"></div>
                     </div>
@@ -314,83 +244,77 @@
     <!-- LOGIQUE JS -->
     <script>
         const DEFAULT_PRODUCTS = [
-            { firestoreId: "default_1", name: "Détergent sols concentré 5L", unit: "Bidon 5L", icon: "ph-drop" },
-            { firestoreId: "default_2", name: "Désinfectant multi-surfaces 750ml", unit: "Flacon", icon: "ph-spray-bottle" },
-            { firestoreId: "default_3", name: "Chiffons microfibres pro", unit: "Lot de 10", icon: "ph-stack" },
-            { firestoreId: "default_4", name: "Gants nitrile jetables", unit: "Boîte de 100", icon: "ph-hand" },
-            { firestoreId: "default_5", name: "Gel détartrant sanitaires", unit: "Flacon 1L", icon: "ph-toilet" }
+            { id: "p1", name: "Détergent sols concentré 5L", unit: "Bidon 5L", icon: "ph-drop" },
+            { id: "p2", name: "Désinfectant multi-surfaces 750ml", unit: "Flacon", icon: "ph-spray-bottle" },
+            { id: "p3", name: "Chiffons microfibres pro", unit: "Lot de 10", icon: "ph-stack" },
+            { id: "p4", name: "Gants nitrile jetables", unit: "Boîte de 100", icon: "ph-hand" },
+            { id: "p5", name: "Gel détartrant sanitaires", unit: "Flacon 1L", icon: "ph-toilet" }
         ];
 
         const DEFAULT_AGENTS = [
-            { firestoreId: "default_a1", name: "Sophie Martin", sector: "Bâtiment A - Étage 1" },
-            { firestoreId: "default_a2", name: "Marc Leroy", sector: "Bâtiment B - RDC" }
+            { id: "a1", name: "Sophie Martin", sector: "Bâtiment A - Étage 1" },
+            { id: "a2", name: "Marc Leroy", sector: "Bâtiment B - RDC" }
         ];
 
         let catalog = [...DEFAULT_PRODUCTS];
         let agents = [...DEFAULT_AGENTS];
         let orders = [];
         let cart = {};
-
+        
+        let db = null;
+        let isCloudReady = false;
         const ntfyTopic = "cleanlogix-responsable-2256";
 
-        // Démarrage instantané garanti
         window.onload = function() {
+            try {
+                firebase.initializeApp({
+                    apiKey: "AIzaSyD2Efo5GxOd2UhOWapBtjJTOmS2gnaKkW4",
+                    authDomain: "cleanlogixapp.firebaseapp.com",
+                    projectId: "cleanlogixapp",
+                    storageBucket: "cleanlogixapp.firebasestorage.app",
+                    messagingSenderId: "244706789950",
+                    appId: "1:244706789950:web:ebac4e7b5f9cef70b49f6f"
+                });
+                db = firebase.firestore();
+                isCloudReady = true;
+                
+                // Synchronisation Cloud sécurisée en arrière-plan
+                db.collection("orders").orderBy("timestamp", "desc").onSnapshot(snap => {
+                    orders = [];
+                    snap.forEach(doc => orders.push({ firestoreId: doc.id, ...doc.data() }));
+                    renderOrdersList();
+                    updateStats();
+                }, err => console.log("Info Firestore orders :", err));
+
+                db.collection("agents").onSnapshot(snap => {
+                    if (!snap.empty) {
+                        agents = [];
+                        snap.forEach(doc => agents.push({ firestoreId: doc.id, ...doc.data() }));
+                        initAgentsSelect();
+                        renderManagerManagementLists();
+                    }
+                }, err => console.log("Info Firestore agents :", err));
+
+                db.collection("catalog").onSnapshot(snap => {
+                    if (!snap.empty) {
+                        catalog = [];
+                        snap.forEach(doc => catalog.push({ firestoreId: doc.id, ...doc.data() }));
+                        renderCatalog();
+                        renderManagerManagementLists();
+                    }
+                }, err => console.log("Info Firestore catalog :", err));
+
+            } catch (e) {
+                console.warn("Mode autonome local activé :", e);
+            }
+
+            // Initialisation de l'affichage immédiat
             initAgentsSelect();
             renderCatalog();
             renderCart();
             renderManagerManagementLists();
-            initCloudSync();
         };
 
-        // SYNCHRONISATION CLOUD EN TEMPS RÉEL (ROBUSTE)
-        function initCloudSync() {
-            if (!isCloudConnected || !db) return;
-
-            // 1. Écoute commandes
-            db.collection("orders").orderBy("timestamp", "desc").onSnapshot((snapshot) => {
-                let newOrders = [];
-                snapshot.forEach((doc) => {
-                    newOrders.push({ firestoreId: doc.id, ...doc.data() });
-                });
-                
-                if (newOrders.length > orders.length && orders.length > 0) {
-                    playNotificationBeep();
-                    showPushNotification(newOrders[0]);
-                }
-                
-                orders = newOrders;
-                renderOrdersList();
-                updateStats();
-            }, (err) => console.log("Erreur commandes :", err));
-
-            // 2. Écoute agents
-            db.collection("agents").onSnapshot((snapshot) => {
-                if (!snapshot.empty) {
-                    let cloudAgents = [];
-                    snapshot.forEach((doc) => {
-                        cloudAgents.push({ firestoreId: doc.id, ...doc.data() });
-                    });
-                    agents = cloudAgents;
-                    initAgentsSelect();
-                    renderManagerManagementLists();
-                }
-            }, (err) => console.log("Erreur agents :", err));
-
-            // 3. Écoute catalogue
-            db.collection("catalog").onSnapshot((snapshot) => {
-                if (!snapshot.empty) {
-                    let cloudCatalog = [];
-                    snapshot.forEach((doc) => {
-                        cloudCatalog.push({ firestoreId: doc.id, ...doc.data() });
-                    });
-                    catalog = cloudCatalog;
-                    renderCatalog();
-                    renderManagerManagementLists();
-                }
-            }, (err) => console.log("Erreur catalogue :", err));
-        }
-
-        // NAVIGATION ENTRE VUES
         function switchRole(role) {
             const viewAgent = document.getElementById('view-agent');
             const viewManager = document.getElementById('view-manager');
@@ -402,13 +326,13 @@
             if (role === 'agent') {
                 viewAgent.classList.remove('hidden');
                 viewManager.classList.add('hidden');
-                if(btnAgent) btnAgent.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md transition-all cursor-pointer";
-                if(btnManager) btnManager.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white transition-all cursor-pointer";
+                btnAgent.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md transition-all cursor-pointer";
+                btnManager.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white transition-all cursor-pointer";
             } else {
                 viewManager.classList.remove('hidden');
                 viewAgent.classList.add('hidden');
-                if(btnManager) btnManager.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md transition-all cursor-pointer";
-                if(btnAgent) btnAgent.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white transition-all cursor-pointer";
+                btnManager.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md transition-all cursor-pointer";
+                btnAgent.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white transition-all cursor-pointer";
             }
         }
 
@@ -464,7 +388,8 @@
             }
 
             filtered.forEach(p => {
-                const qty = cart[p.firestoreId || p.name] || 0;
+                const key = p.firestoreId || p.id || p.name;
+                const qty = cart[key] || 0;
                 grid.innerHTML += `
                     <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between gap-4">
                         <div class="flex items-start gap-3">
@@ -478,9 +403,9 @@
                         </div>
                         <div class="flex items-center justify-between pt-2 border-t border-slate-100">
                             <div class="flex items-center gap-2">
-                                <button onclick="updateCart('${p.firestoreId || p.name}', -1)" class="w-8 h-8 rounded-xl bg-slate-100 font-bold cursor-pointer">-</button>
+                                <button onclick="updateCart('${key}', -1)" class="w-8 h-8 rounded-xl bg-slate-100 font-bold cursor-pointer">-</button>
                                 <span class="w-6 text-center font-bold text-sm">${qty}</span>
-                                <button onclick="updateCart('${p.firestoreId || p.name}', 1)" class="w-8 h-8 rounded-xl bg-teal-500 font-bold text-slate-950 cursor-pointer">+</button>
+                                <button onclick="updateCart('${key}', 1)" class="w-8 h-8 rounded-xl bg-teal-500 font-bold text-slate-950 cursor-pointer">+</button>
                             </div>
                         </div>
                     </div>
@@ -488,9 +413,9 @@
             });
         }
 
-        function updateCart(id, delta) {
-            cart[id] = (cart[id] || 0) + delta;
-            if (cart[id] <= 0) delete cart[id];
+        function updateCart(key, delta) {
+            cart[key] = (cart[key] || 0) + delta;
+            if (cart[key] <= 0) delete cart[key];
             renderCatalog();
             renderCart();
         }
@@ -516,20 +441,20 @@
                 return;
             }
 
-            keys.forEach(id => {
-                const p = catalog.find(item => (item.firestoreId === id || item.name === id));
+            keys.forEach(k => {
+                const p = catalog.find(item => (item.firestoreId === k || item.id === k || item.name === k));
                 if (p) {
                     container.innerHTML += `
                         <div class="flex justify-between items-center text-xs p-2 bg-slate-50 rounded-lg">
                             <span class="font-bold text-slate-800">${p.name}</span>
-                            <span class="font-bold text-teal-600">x${cart[id]}</span>
+                            <span class="font-bold text-teal-600">x${cart[k]}</span>
                         </div>
                     `;
                 }
             });
             if (btn) {
                 btn.disabled = false;
-                btn.className = "w-full bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-teal-500/20 cursor-pointer";
+                btn.className = "w-full bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg cursor-pointer";
             }
         }
 
@@ -541,9 +466,9 @@
             const commentInput = document.getElementById('order-comment-input');
             const comment = commentInput ? commentInput.value.trim() : "";
 
-            const items = Object.keys(cart).map(id => {
-                const p = catalog.find(item => (item.firestoreId === id || item.name === id));
-                return { name: p ? p.name : id, quantity: cart[id], unit: p ? p.unit : 'Unité' };
+            const items = Object.keys(cart).map(k => {
+                const p = catalog.find(item => (item.firestoreId === k || item.id === k || item.name === k));
+                return { name: p ? p.name : k, quantity: cart[k], unit: p ? p.unit : 'Unité' };
             });
 
             const itemsSummary = items.map(i => `• ${i.name} (x${i.quantity} ${i.unit})`).join('\n');
@@ -558,31 +483,26 @@
                 timestamp: Date.now()
             };
 
-            if (isCloudConnected && db) {
+            if (isCloudReady && db) {
                 try {
                     await db.collection("orders").add(newOrder);
                 } catch(e) {
-                    console.error("Erreur envoi commande Firebase :", e);
+                    console.log("Erreur envoi ordre :", e);
                 }
+            } else {
+                orders.unshift({ firestoreId: "local_" + Date.now(), ...newOrder });
+                renderOrdersList();
+                updateStats();
             }
 
             try {
-                let priorityLevel = 'default';
-                if (priority === 'Urgent') priorityLevel = 'high';
-                if (priority === 'Très Urgent') priorityLevel = 'urgent';
-
+                let priorityLevel = priority === 'Très Urgent' ? 'urgent' : (priority === 'Urgent' ? 'high' : 'default');
                 fetch(`https://ntfy.sh/${ntfyTopic}`, {
                     method: 'POST',
                     body: `Secteur : ${location}\nProduits :\n${itemsSummary}\nRemarque : ${comment || 'Aucune'}`,
-                    headers: {
-                        'Title': `🚨 ${agent} (${priority})`,
-                        'Priority': priorityLevel,
-                        'Tags': 'package,warning'
-                    }
-                }).catch(err => console.log("Erreur ntfy :", err));
-            } catch (err) {
-                console.error("Erreur ntfy :", err);
-            }
+                    headers: { 'Title': `🚨 ${agent} (${priority})`, 'Priority': priorityLevel, 'Tags': 'package,warning' }
+                }).catch(() => {});
+            } catch(e) {}
 
             cart = {};
             if (commentInput) commentInput.value = "";
@@ -598,10 +518,11 @@
             if (agentsListContainer) {
                 agentsListContainer.innerHTML = "";
                 agents.forEach(a => {
+                    const id = a.firestoreId || a.id;
                     agentsListContainer.innerHTML += `
                         <div class="flex justify-between items-center text-xs bg-slate-50 p-2 rounded-xl">
                             <div><strong>${a.name}</strong> <span class="text-slate-400">(${a.sector})</span></div>
-                            <button onclick="deleteAgent('${a.firestoreId}')" class="text-rose-500 hover:text-rose-700 font-bold px-2 cursor-pointer">✕</button>
+                            <button onclick="deleteAgent('${id}')" class="text-rose-500 font-bold px-2 cursor-pointer">✕</button>
                         </div>
                     `;
                 });
@@ -610,10 +531,11 @@
             if (productsListContainer) {
                 productsListContainer.innerHTML = "";
                 catalog.forEach(p => {
+                    const id = p.firestoreId || p.id;
                     productsListContainer.innerHTML += `
                         <div class="flex justify-between items-center text-xs bg-slate-50 p-2 rounded-xl">
                             <div><strong>${p.name}</strong> <span class="text-slate-400">(${p.unit})</span></div>
-                            <button onclick="deleteProduct('${p.firestoreId}')" class="text-rose-500 hover:text-rose-700 font-bold px-2 cursor-pointer">✕</button>
+                            <button onclick="deleteProduct('${id}')" class="text-rose-500 font-bold px-2 cursor-pointer">✕</button>
                         </div>
                     `;
                 });
@@ -623,5 +545,121 @@
         async function addNewAgent() {
             const nameInput = document.getElementById('new-agent-name');
             const sectorInput = document.getElementById('new-agent-sector');
-            if (!nameInput || !nameInput.value) {
-                alert("Veu
+            if (!nameInput || !nameInput.value) return alert("Entrez un nom.");
+
+            const newAgent = { name: nameInput.value, sector: sectorInput?.value || "Général" };
+            if (isCloudReady && db) {
+                await db.collection("agents").add(newAgent).catch(()=>{});
+            } else {
+                agents.push({ id: "local_" + Date.now(), ...newAgent });
+                initAgentsSelect();
+                renderManagerManagementLists();
+            }
+            nameInput.value = "";
+            if(sectorInput) sectorInput.value = "";
+        }
+
+        async function deleteAgent(id) {
+            if (isCloudReady && db && !id.startsWith("local_") && !id.startsWith("a")) {
+                await db.collection("agents").doc(id).delete().catch(()=>{});
+            } else {
+                agents = agents.filter(a => (a.firestoreId !== id && a.id !== id));
+                initAgentsSelect();
+                renderManagerManagementLists();
+            }
+        }
+
+        async function addNewProduct() {
+            const nameInput = document.getElementById('new-prod-name');
+            const unitInput = document.getElementById('new-prod-unit');
+            if (!nameInput || !nameInput.value) return alert("Entrez un produit.");
+
+            const newProd = { name: nameInput.value, unit: unitInput?.value || "Unité", icon: "ph-package" };
+            if (isCloudReady && db) {
+                await db.collection("catalog").add(newProd).catch(()=>{});
+            } else {
+                catalog.push({ id: "local_" + Date.now(), ...newProd });
+                renderCatalog();
+                renderManagerManagementLists();
+            }
+            nameInput.value = "";
+            if(unitInput) unitInput.value = "";
+        }
+
+        async function deleteProduct(id) {
+            if (isCloudReady && db && !id.startsWith("local_") && !id.startsWith("p")) {
+                await db.collection("catalog").doc(id).delete().catch(()=>{});
+            } else {
+                catalog = catalog.filter(p => (p.firestoreId !== id && p.id !== id));
+                renderCatalog();
+                renderManagerManagementLists();
+            }
+        }
+
+        async function clearAllOrders() {
+            if (!confirm("Voulez-vous supprimer toutes les commandes ?")) return;
+            if (isCloudReady && db) {
+                const snap = await db.collection("orders").get();
+                const batch = db.batch();
+                snap.docs.forEach(d => batch.delete(d.ref));
+                await batch.commit();
+            }
+            orders = [];
+            renderOrdersList();
+            updateStats();
+        }
+
+        function renderOrdersList() {
+            const container = document.getElementById('orders-list-container');
+            if (!container) return;
+            container.innerHTML = "";
+
+            if (orders.length === 0) {
+                container.innerHTML = `<div class="bg-white p-8 rounded-2xl text-center text-slate-400">Aucune commande reçue.</div>`;
+                return;
+            }
+
+            orders.forEach(o => {
+                let itemsList = o.items ? o.items.map(i => `<li class="text-xs text-slate-700">• ${i.name} : <strong>x${i.quantity} ${i.unit}</strong></li>`).join('') : '';
+                let commentBlock = o.comment ? `<div class="bg-amber-50 border border-amber-200 p-2.5 rounded-xl text-xs text-amber-900 mt-2"><strong>Remarque :</strong> ${o.comment}</div>` : '';
+
+                container.innerHTML += `
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="font-bold text-slate-900">${o.agent || 'Inconnu'}</h4>
+                                <p class="text-xs text-slate-400">${o.location || ''}</p>
+                            </div>
+                            <span class="text-xs font-bold px-2.5 py-1 rounded-full ${o.priority === 'Urgent' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'}">${o.priority || 'Normal'}</span>
+                        </div>
+                        <ul class="bg-slate-50 p-3 rounded-xl space-y-1">${itemsList}</ul>
+                        ${commentBlock}
+                        <div class="flex justify-between items-center pt-2">
+                            <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full">${o.status || 'En attente'}</span>
+                            <button onclick="updateStatus('${o.firestoreId}', 'Prête')" class="text-xs bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-xl cursor-pointer">Marquer Prête</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        async function updateStatus(id, newStatus) {
+            if (isCloudReady && db && id && !id.startsWith("local_")) {
+                await db.collection("orders").doc(id).update({ status: newStatus }).catch(()=>{});
+            } else {
+                const ord = orders.find(o => o.firestoreId === id);
+                if(ord) ord.status = newStatus;
+                renderOrdersList();
+                updateStats();
+            }
+        }
+
+        function updateStats() {
+            const pendingEl = document.getElementById('stat-pending');
+            const completedEl = document.getElementById('stat-completed');
+            if (pendingEl) pendingEl.textContent = orders.filter(o => o.status === 'En attente').length;
+            if (completedEl) completedEl.textContent = orders.filter(o => o.status === 'Prête').length;
+        }
+    </script>
+</body>
+</html>
