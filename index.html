@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CleanLogix - Gestion & Réapprovisionnement</title>
+    <title>InguiClean - Gestion & Réapprovisionnement</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -35,14 +35,14 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-400 flex items-center justify-center text-slate-900 font-bold text-xl shadow-lg">
-                        <i class="ph-bold ph-sparkle text-2xl text-white"></i>
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-500 flex items-center justify-center text-slate-950 font-black text-xl shadow-lg">
+                        <i class="ph-bold ph-plant text-2xl text-white"></i>
                     </div>
                     <div>
-                        <h1 class="font-extrabold text-lg leading-tight tracking-tight">Clean<span class="text-teal-400">Logix</span></h1>
+                        <h1 class="font-extrabold text-lg leading-tight tracking-tight">Ingui<span class="text-teal-400">Clean</span></h1>
                         <p class="text-[11px] text-slate-400 flex items-center gap-1">
                             <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                            <span>Mode Opérationnel Stable</span>
+                            <span>Mode Opérationnel</span>
                         </p>
                     </div>
                 </div>
@@ -93,7 +93,6 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <!-- CATALOGUE & ONGLETS -->
                 <div class="lg:col-span-2 space-y-4">
-                    <!-- ONGLETS PAR FAMILLE -->
                     <div class="flex items-center gap-2 overflow-x-auto pb-1 hide-scrollbar" id="category-tabs">
                         <button onclick="setCategoryFilter('Tous')" class="cat-tab px-4 py-2 rounded-xl text-xs font-bold bg-teal-500 text-slate-950 shadow-sm transition-all whitespace-nowrap cursor-pointer">Tous</button>
                         <button onclick="setCategoryFilter('Produits')" class="cat-tab px-4 py-2 rounded-xl text-xs font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 transition-all whitespace-nowrap cursor-pointer">Produits</button>
@@ -166,8 +165,9 @@
                     <i class="ph-bold ph-lock-key"></i>
                 </div>
                 <h2 class="text-xl font-extrabold text-slate-900">Espace Responsable</h2>
-                <p class="text-xs text-slate-500 mt-1 mb-6">Saisissez votre code PIN (2256) pour accéder à l'administration.</p>
-                <input type="password" id="manager-pin-input" maxlength="4" placeholder="••••" class="w-40 text-center text-2xl font-bold py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none mb-4 tracking-widest">
+                <div class="my-6">
+                    <input type="password" id="manager-pin-input" maxlength="4" placeholder="••••" class="w-40 text-center text-2xl font-bold py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none tracking-widest">
+                </div>
                 <button onclick="verifyManagerPin()" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl cursor-pointer">Déverrouiller</button>
                 <p id="pin-error-msg" class="text-rose-500 text-xs font-semibold mt-3 hidden">Code PIN incorrect.</p>
             </div>
@@ -181,7 +181,7 @@
                         </div>
                         <div>
                             <h4 class="font-extrabold text-sm leading-tight">Canal Ntfy actif</h4>
-                            <p class="text-xs opacity-90">Canal : <strong class="underline">cleanlogix-responsable-2256</strong></p>
+                            <p class="text-xs opacity-90">Canal : <strong class="underline">inguiclean-responsable-2256</strong></p>
                         </div>
                     </div>
                 </div>
@@ -203,7 +203,7 @@
                     </div>
                 </div>
 
-                <!-- COMMANDES -->
+                <!-- COMMANDES (EN HAUT) -->
                 <div class="space-y-4">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <h3 class="font-extrabold text-slate-900 text-xl flex items-center gap-2">
@@ -217,7 +217,7 @@
                     <div id="orders-list-container" class="space-y-4"></div>
                 </div>
 
-                <!-- ADMINISTRATION -->
+                <!-- ADMINISTRATION (EN DESSOUS) -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-slate-200">
                     <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                         <h3 class="font-bold text-slate-900 flex items-center gap-2">
@@ -253,7 +253,7 @@
         </div>
     </main>
 
-    <!-- SCRIPT LOGIQUE INTERNE AVEC SAUVEGARDE LOCALE -->
+    <!-- SCRIPT LOGIQUE INTERNE DE SECOURISME DES DONNEES -->
     <script>
         const INITIAL_PRODUCTS = [
             { id: "p1", name: "Détergent sols concentré 5L", unit: "Bidon 5L", category: "Produits", icon: "ph-drop" },
@@ -269,12 +269,19 @@
             { id: "a2", name: "Marc Leroy", sector: "Bâtiment B - RDC" }
         ];
 
-        let catalog = JSON.parse(localStorage.getItem('cleanlogix_catalog')) || INITIAL_PRODUCTS;
-        let agents = JSON.parse(localStorage.getItem('cleanlogix_agents')) || INITIAL_AGENTS;
-        let orders = JSON.parse(localStorage.getItem('cleanlogix_orders')) || [];
+        // Charger ou récupérer les sauvegardes antérieures (pour ne plus perdre les agents/produits)
+        let catalog = JSON.parse(localStorage.getItem('inguiclean_catalog')) || JSON.parse(localStorage.getItem('cleanlogix_catalog')) || INITIAL_PRODUCTS;
+        if (!catalog || catalog.length === 0) catalog = INITIAL_PRODUCTS;
+        localStorage.setItem('inguiclean_catalog', JSON.stringify(catalog));
+
+        let agents = JSON.parse(localStorage.getItem('inguiclean_agents')) || JSON.parse(localStorage.getItem('cleanlogix_agents')) || INITIAL_AGENTS;
+        if (!agents || agents.length === 0) agents = INITIAL_AGENTS;
+        localStorage.setItem('inguiclean_agents', JSON.stringify(agents));
+
+        let orders = JSON.parse(localStorage.getItem('inguiclean_orders')) || JSON.parse(localStorage.getItem('cleanlogix_orders')) || [];
         let cart = {};
         let currentCategory = "Tous";
-        const ntfyTopic = "cleanlogix-responsable-2256";
+        const ntfyTopic = "inguiclean-responsable-2256";
 
         window.onload = function() {
             initAgentsSelect();
@@ -290,6 +297,8 @@
             const viewManager = document.getElementById('view-manager');
             const btnAgent = document.getElementById('btn-role-agent');
             const btnManager = document.getElementById('btn-role-manager');
+
+            if (!viewAgent || !viewManager) return;
 
             if (role === 'agent') {
                 viewAgent.classList.remove('hidden');
@@ -471,18 +480,18 @@
             };
 
             orders.unshift(newOrder);
-            localStorage.setItem('cleanlogix_orders', JSON.stringify(orders));
+            localStorage.setItem('inguiclean_orders', JSON.stringify(orders));
             renderOrdersList();
             updateStats();
 
+            const textMessage = `Agent: ${agent}\nZone: ${location}\nPriorite: ${priority}\nProduits:\n${itemsSummary}\nRemarque: ${comment || 'Aucune'}`;
             try {
-                const textMessage = `Agent: ${agent}\nZone: ${location}\nPriorite: ${priority}\nProduits:\n${itemsSummary}\nRemarque: ${comment || 'Aucune'}`;
                 fetch(`https://ntfy.sh/${ntfyTopic}`, {
                     method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'text/plain' },
                     body: textMessage
-                }).catch(() => {});
+                }).catch(() => {
+                    new Image().src = `https://ntfy.sh/${ntfyTopic}/publish?message=${encodeURIComponent(textMessage)}`;
+                });
             } catch(e) {}
 
             cart = {};
@@ -524,16 +533,10 @@
         function addNewAgent() {
             const nameInput = document.getElementById('new-agent-name');
             const sectorInput = document.getElementById('new-agent-sector');
-            if (!nameInput || !nameInput.value.trim()) return alert("Entrez un nom d'agent.");
+            if (!nameInput || !nameInput.value) return alert("Entrez un nom.");
 
-            const newAgent = {
-                id: "a_" + Date.now(),
-                name: nameInput.value.trim(),
-                sector: sectorInput?.value.trim() || "Général"
-            };
-
-            agents.push(newAgent);
-            localStorage.setItem('cleanlogix_agents', JSON.stringify(agents));
+            agents.push({ id: "a_" + Date.now(), name: nameInput.value, sector: sectorInput?.value || "Général" });
+            localStorage.setItem('inguiclean_agents', JSON.stringify(agents));
             initAgentsSelect();
             renderManagerManagementLists();
             nameInput.value = "";
@@ -542,7 +545,7 @@
 
         function deleteAgent(id) {
             agents = agents.filter(a => a.id !== id);
-            localStorage.setItem('cleanlogix_agents', JSON.stringify(agents));
+            localStorage.setItem('inguiclean_agents', JSON.stringify(agents));
             initAgentsSelect();
             renderManagerManagementLists();
         }
@@ -551,19 +554,18 @@
             const nameInput = document.getElementById('new-prod-name');
             const unitInput = document.getElementById('new-prod-unit');
             const catSelect = document.getElementById('new-prod-cat');
-            if (!nameInput || !nameInput.value.trim()) return alert("Entrez un nom de produit.");
+            if (!nameInput || !nameInput.value) return alert("Entrez un produit.");
 
             const category = catSelect ? catSelect.value : "Produits";
-            const newProd = {
+            catalog.push({ 
                 id: "p_" + Date.now(),
-                name: nameInput.value.trim(),
-                unit: unitInput?.value.trim() || "Unité",
+                name: nameInput.value, 
+                unit: unitInput?.value || "Unité", 
                 category: category,
                 icon: category === 'Poubelle' ? 'ph-trash' : (category === 'EPI' ? 'ph-hand' : 'ph-package')
-            };
+            });
 
-            catalog.push(newProd);
-            localStorage.setItem('cleanlogix_catalog', JSON.stringify(catalog));
+            localStorage.setItem('inguiclean_catalog', JSON.stringify(catalog));
             renderCatalog();
             renderManagerManagementLists();
             nameInput.value = "";
@@ -572,7 +574,7 @@
 
         function deleteProduct(id) {
             catalog = catalog.filter(p => p.id !== id);
-            localStorage.setItem('cleanlogix_catalog', JSON.stringify(catalog));
+            localStorage.setItem('inguiclean_catalog', JSON.stringify(catalog));
             renderCatalog();
             renderManagerManagementLists();
         }
@@ -580,7 +582,7 @@
         function clearAllOrders() {
             if (!confirm("Voulez-vous supprimer toutes les commandes ?")) return;
             orders = [];
-            localStorage.setItem('cleanlogix_orders', JSON.stringify(orders));
+            localStorage.setItem('inguiclean_orders', JSON.stringify(orders));
             renderOrdersList();
             updateStats();
         }
@@ -612,7 +614,7 @@
                         ${commentBlock}
                         <div class="flex justify-between items-center pt-2">
                             <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full">${o.status}</span>
-                            <button onclick="updateStatus('${o.id}', 'Prête')" class="text-xs bg-emerald-600 text-white font-bold px-3 py-1 rounded-xl cursor-pointer">Marquer Prête</button>
+                            <button onclick="updateStatus('${o.id}', 'Prête')" class="text-xs bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-xl cursor-pointer">Marquer Prête</button>
                         </div>
                     </div>
                 `;
@@ -621,9 +623,9 @@
 
         function updateStatus(id, newStatus) {
             const ord = orders.find(o => o.id === id);
-            if (ord) {
+            if(ord) {
                 ord.status = newStatus;
-                localStorage.setItem('cleanlogix_orders', JSON.stringify(orders));
+                localStorage.setItem('inguiclean_orders', JSON.stringify(orders));
                 renderOrdersList();
                 updateStats();
             }
