@@ -314,26 +314,26 @@
     <!-- LOGIQUE JS -->
     <script>
         const DEFAULT_PRODUCTS = [
-            { name: "Détergent sols concentré 5L", unit: "Bidon 5L", icon: "ph-drop" },
-            { name: "Désinfectant multi-surfaces 750ml", unit: "Flacon", icon: "ph-spray-bottle" },
-            { name: "Chiffons microfibres pro", unit: "Lot de 10", icon: "ph-stack" },
-            { name: "Gants nitrile jetables", unit: "Boîte de 100", icon: "ph-hand" },
-            { name: "Gel détartrant sanitaires", unit: "Flacon 1L", icon: "ph-toilet" }
+            { firestoreId: "default_1", name: "Détergent sols concentré 5L", unit: "Bidon 5L", icon: "ph-drop" },
+            { firestoreId: "default_2", name: "Désinfectant multi-surfaces 750ml", unit: "Flacon", icon: "ph-spray-bottle" },
+            { firestoreId: "default_3", name: "Chiffons microfibres pro", unit: "Lot de 10", icon: "ph-stack" },
+            { firestoreId: "default_4", name: "Gants nitrile jetables", unit: "Boîte de 100", icon: "ph-hand" },
+            { firestoreId: "default_5", name: "Gel détartrant sanitaires", unit: "Flacon 1L", icon: "ph-toilet" }
         ];
 
         const DEFAULT_AGENTS = [
-            { name: "Sophie Martin", sector: "Bâtiment A - Étage 1" },
-            { name: "Marc Leroy", sector: "Bâtiment B - RDC" }
+            { firestoreId: "default_a1", name: "Sophie Martin", sector: "Bâtiment A - Étage 1" },
+            { firestoreId: "default_a2", name: "Marc Leroy", sector: "Bâtiment B - RDC" }
         ];
 
-        let catalog = DEFAULT_PRODUCTS.map((p, index) => ({ firestoreId: "local_" + index, ...p }));
-        let agents = DEFAULT_AGENTS.map((a, index) => ({ firestoreId: "local_" + index, ...a }));
+        let catalog = [...DEFAULT_PRODUCTS];
+        let agents = [...DEFAULT_AGENTS];
         let orders = [];
         let cart = {};
 
-        // Canal Ntfy.sh privé pour les notifications mobile
         const ntfyTopic = "cleanlogix-responsable-2256";
 
+        // Démarrage instantané garanti
         window.onload = function() {
             initAgentsSelect();
             renderCatalog();
@@ -342,66 +342,55 @@
             initCloudSync();
         };
 
-        // SYNCHRONISATION CLOUD EN TEMPS RÉEL SÉCURISÉE
+        // SYNCHRONISATION CLOUD EN TEMPS RÉEL (ROBUSTE)
         function initCloudSync() {
             if (!isCloudConnected || !db) return;
 
-            try {
-                db.collection("orders").orderBy("timestamp", "desc").onSnapshot((snapshot) => {
-                    let newOrders = [];
+            // 1. Écoute commandes
+            db.collection("orders").orderBy("timestamp", "desc").onSnapshot((snapshot) => {
+                let newOrders = [];
+                snapshot.forEach((doc) => {
+                    newOrders.push({ firestoreId: doc.id, ...doc.data() });
+                });
+                
+                if (newOrders.length > orders.length && orders.length > 0) {
+                    playNotificationBeep();
+                    showPushNotification(newOrders[0]);
+                }
+                
+                orders = newOrders;
+                renderOrdersList();
+                updateStats();
+            }, (err) => console.log("Erreur commandes :", err));
+
+            // 2. Écoute agents
+            db.collection("agents").onSnapshot((snapshot) => {
+                if (!snapshot.empty) {
+                    let cloudAgents = [];
                     snapshot.forEach((doc) => {
-                        newOrders.push({ firestoreId: doc.id, ...doc.data() });
+                        cloudAgents.push({ firestoreId: doc.id, ...doc.data() });
                     });
-                    
-                    if (newOrders.length > orders.length && orders.length > 0) {
-                        playNotificationBeep();
-                        showPushNotification(newOrders[0]);
-                    }
-                    
-                    orders = newOrders;
-                    renderOrdersList();
-                    updateStats();
-                }, (error) => {
-                    console.warn("Erreur écoute commandes :", error);
-                });
+                    agents = cloudAgents;
+                    initAgentsSelect();
+                    renderManagerManagementLists();
+                }
+            }, (err) => console.log("Erreur agents :", err));
 
-                db.collection("agents").onSnapshot((snapshot) => {
-                    if (!snapshot.empty) {
-                        let cloudAgents = [];
-                        snapshot.forEach((doc) => {
-                            cloudAgents.push({ firestoreId: doc.id, ...doc.data() });
-                        });
-                        agents = cloudAgents;
-                        initAgentsSelect();
-                        renderManagerManagementLists();
-                    } else {
-                        DEFAULT_AGENTS.forEach(a => db.collection("agents").add(a).catch(()=>{}));
-                    }
-                }, (error) => {
-                    console.warn("Erreur agents :", error);
-                });
-
-                db.collection("catalog").onSnapshot((snapshot) => {
-                    if (!snapshot.empty) {
-                        let cloudCatalog = [];
-                        snapshot.forEach((doc) => {
-                            cloudCatalog.push({ firestoreId: doc.id, ...doc.data() });
-                        });
-                        catalog = cloudCatalog;
-                        renderCatalog();
-                        renderManagerManagementLists();
-                    } else {
-                        DEFAULT_PRODUCTS.forEach(p => db.collection("catalog").add(p).catch(()=>{}));
-                    }
-                }, (error) => {
-                    console.warn("Erreur catalogue :", error);
-                });
-            } catch (err) {
-                console.error("Erreur sync cloud :", err);
-            }
+            // 3. Écoute catalogue
+            db.collection("catalog").onSnapshot((snapshot) => {
+                if (!snapshot.empty) {
+                    let cloudCatalog = [];
+                    snapshot.forEach((doc) => {
+                        cloudCatalog.push({ firestoreId: doc.id, ...doc.data() });
+                    });
+                    catalog = cloudCatalog;
+                    renderCatalog();
+                    renderManagerManagementLists();
+                }
+            }, (err) => console.log("Erreur catalogue :", err));
         }
 
-        // NAVIGATION ENTRE LES VUES
+        // NAVIGATION ENTRE VUES
         function switchRole(role) {
             const viewAgent = document.getElementById('view-agent');
             const viewManager = document.getElementById('view-manager');
@@ -411,3 +400,228 @@
             if (!viewAgent || !viewManager) return;
 
             if (role === 'agent') {
+                viewAgent.classList.remove('hidden');
+                viewManager.classList.add('hidden');
+                if(btnAgent) btnAgent.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md transition-all cursor-pointer";
+                if(btnManager) btnManager.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white transition-all cursor-pointer";
+            } else {
+                viewManager.classList.remove('hidden');
+                viewAgent.classList.add('hidden');
+                if(btnManager) btnManager.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md transition-all cursor-pointer";
+                if(btnAgent) btnAgent.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white transition-all cursor-pointer";
+            }
+        }
+
+        function verifyManagerPin() {
+            const pinInput = document.getElementById('manager-pin-input');
+            const errorMsg = document.getElementById('pin-error-msg');
+            const lockScreen = document.getElementById('manager-lock-screen');
+            const unlockedContent = document.getElementById('manager-unlocked-content');
+
+            if (pinInput && pinInput.value === "2256") {
+                lockScreen.classList.add('hidden');
+                unlockedContent.classList.remove('hidden');
+                errorMsg.classList.add('hidden');
+                renderManagerManagementLists();
+            } else {
+                errorMsg.classList.remove('hidden');
+                if(pinInput) pinInput.value = "";
+            }
+        }
+
+        function initAgentsSelect() {
+            const select = document.getElementById('agent-name-select');
+            if (!select) return;
+            select.innerHTML = "";
+            agents.forEach(a => {
+                select.innerHTML += `<option value="${a.name}" data-sector="${a.sector}">${a.name}</option>`;
+            });
+            onAgentSelectChange();
+        }
+
+        function onAgentSelectChange() {
+            const select = document.getElementById('agent-name-select');
+            const locationInput = document.getElementById('agent-location-input');
+            if (!select || !locationInput) return;
+            const selectedOpt = select.options[select.selectedIndex];
+            if (selectedOpt) {
+                locationInput.value = selectedOpt.getAttribute('data-sector') || '';
+            }
+        }
+
+        function renderCatalog() {
+            const grid = document.getElementById('products-grid');
+            const searchInput = document.getElementById('catalog-search');
+            if (!grid) return;
+            
+            grid.innerHTML = "";
+            const filter = searchInput ? searchInput.value.toLowerCase() : "";
+            const filtered = catalog.filter(p => p.name.toLowerCase().includes(filter));
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `<p class="text-xs text-slate-400 col-span-2 text-center py-6">Aucun produit trouvé</p>`;
+                return;
+            }
+
+            filtered.forEach(p => {
+                const qty = cart[p.firestoreId || p.name] || 0;
+                grid.innerHTML += `
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between gap-4">
+                        <div class="flex items-start gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-xl">
+                                <i class="ph ${p.icon || 'ph-package'}"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-slate-900 text-sm">${p.name}</h4>
+                                <p class="text-xs text-slate-400">${p.unit}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+                            <div class="flex items-center gap-2">
+                                <button onclick="updateCart('${p.firestoreId || p.name}', -1)" class="w-8 h-8 rounded-xl bg-slate-100 font-bold cursor-pointer">-</button>
+                                <span class="w-6 text-center font-bold text-sm">${qty}</span>
+                                <button onclick="updateCart('${p.firestoreId || p.name}', 1)" class="w-8 h-8 rounded-xl bg-teal-500 font-bold text-slate-950 cursor-pointer">+</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function updateCart(id, delta) {
+            cart[id] = (cart[id] || 0) + delta;
+            if (cart[id] <= 0) delete cart[id];
+            renderCatalog();
+            renderCart();
+        }
+
+        function renderCart() {
+            const container = document.getElementById('cart-items');
+            const btn = document.getElementById('btn-submit-order');
+            const countBadge = document.getElementById('cart-count-badge');
+            const keys = Object.keys(cart);
+            if (!container) return;
+            container.innerHTML = "";
+
+            let totalItems = 0;
+            keys.forEach(k => totalItems += cart[k]);
+            if (countBadge) countBadge.textContent = `${totalItems} article${totalItems > 1 ? 's' : ''}`;
+
+            if (keys.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">Panier vide</p>`;
+                if (btn) {
+                    btn.disabled = true;
+                    btn.className = "w-full bg-slate-200 text-slate-400 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2";
+                }
+                return;
+            }
+
+            keys.forEach(id => {
+                const p = catalog.find(item => (item.firestoreId === id || item.name === id));
+                if (p) {
+                    container.innerHTML += `
+                        <div class="flex justify-between items-center text-xs p-2 bg-slate-50 rounded-lg">
+                            <span class="font-bold text-slate-800">${p.name}</span>
+                            <span class="font-bold text-teal-600">x${cart[id]}</span>
+                        </div>
+                    `;
+                }
+            });
+            if (btn) {
+                btn.disabled = false;
+                btn.className = "w-full bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-teal-500/20 cursor-pointer";
+            }
+        }
+
+        async function submitOrder() {
+            const agent = document.getElementById('agent-name-select').value;
+            const location = document.getElementById('agent-location-input').value;
+            const priorityEl = document.querySelector('input[name="priority"]:checked');
+            const priority = priorityEl ? priorityEl.value : "Normal";
+            const commentInput = document.getElementById('order-comment-input');
+            const comment = commentInput ? commentInput.value.trim() : "";
+
+            const items = Object.keys(cart).map(id => {
+                const p = catalog.find(item => (item.firestoreId === id || item.name === id));
+                return { name: p ? p.name : id, quantity: cart[id], unit: p ? p.unit : 'Unité' };
+            });
+
+            const itemsSummary = items.map(i => `• ${i.name} (x${i.quantity} ${i.unit})`).join('\n');
+
+            const newOrder = {
+                agent: agent,
+                location: location,
+                priority: priority,
+                comment: comment,
+                items: items,
+                status: "En attente",
+                timestamp: Date.now()
+            };
+
+            if (isCloudConnected && db) {
+                try {
+                    await db.collection("orders").add(newOrder);
+                } catch(e) {
+                    console.error("Erreur envoi commande Firebase :", e);
+                }
+            }
+
+            try {
+                let priorityLevel = 'default';
+                if (priority === 'Urgent') priorityLevel = 'high';
+                if (priority === 'Très Urgent') priorityLevel = 'urgent';
+
+                fetch(`https://ntfy.sh/${ntfyTopic}`, {
+                    method: 'POST',
+                    body: `Secteur : ${location}\nProduits :\n${itemsSummary}\nRemarque : ${comment || 'Aucune'}`,
+                    headers: {
+                        'Title': `🚨 ${agent} (${priority})`,
+                        'Priority': priorityLevel,
+                        'Tags': 'package,warning'
+                    }
+                }).catch(err => console.log("Erreur ntfy :", err));
+            } catch (err) {
+                console.error("Erreur ntfy :", err);
+            }
+
+            cart = {};
+            if (commentInput) commentInput.value = "";
+            renderCatalog();
+            renderCart();
+            alert("Commande transmise avec succès !");
+        }
+
+        function renderManagerManagementLists() {
+            const agentsListContainer = document.getElementById('manager-agents-list');
+            const productsListContainer = document.getElementById('manager-products-list');
+
+            if (agentsListContainer) {
+                agentsListContainer.innerHTML = "";
+                agents.forEach(a => {
+                    agentsListContainer.innerHTML += `
+                        <div class="flex justify-between items-center text-xs bg-slate-50 p-2 rounded-xl">
+                            <div><strong>${a.name}</strong> <span class="text-slate-400">(${a.sector})</span></div>
+                            <button onclick="deleteAgent('${a.firestoreId}')" class="text-rose-500 hover:text-rose-700 font-bold px-2 cursor-pointer">✕</button>
+                        </div>
+                    `;
+                });
+            }
+
+            if (productsListContainer) {
+                productsListContainer.innerHTML = "";
+                catalog.forEach(p => {
+                    productsListContainer.innerHTML += `
+                        <div class="flex justify-between items-center text-xs bg-slate-50 p-2 rounded-xl">
+                            <div><strong>${p.name}</strong> <span class="text-slate-400">(${p.unit})</span></div>
+                            <button onclick="deleteProduct('${p.firestoreId}')" class="text-rose-500 hover:text-rose-700 font-bold px-2 cursor-pointer">✕</button>
+                        </div>
+                    `;
+                });
+            }
+        }
+
+        async function addNewAgent() {
+            const nameInput = document.getElementById('new-agent-name');
+            const sectorInput = document.getElementById('new-agent-sector');
+            if (!nameInput || !nameInput.value) {
+                alert("Veu
