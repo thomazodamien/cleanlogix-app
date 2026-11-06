@@ -185,7 +185,7 @@
         </div>
     </main>
 
-    <!-- SCRIPT CORRIGÉ POUR LES NOTIFICATIONS -->
+    <!-- SCRIPT DE RESTAURATION ET ROBUSTESSE -->
     <script>
         var DEFAULT_PRODUCTS = [
             { id: "p1", name: "Détergent sols concentré 5L", unit: "Bidon 5L", category: "Produits" },
@@ -208,14 +208,24 @@
 
         window.onload = function() {
             try {
-                catalog = JSON.parse(localStorage.getItem('inguiclean_catalog')) || DEFAULT_PRODUCTS;
-                agents = JSON.parse(localStorage.getItem('inguiclean_agents')) || DEFAULT_AGENTS;
-                orders = JSON.parse(localStorage.getItem('inguiclean_orders')) || [];
+                // Récupération sécurisée avec fusion des anciennes clés pour ne rien perdre
+                var savedCatalog = localStorage.getItem('inguiclean_catalog') || localStorage.getItem('cleanlogix_catalog');
+                catalog = savedCatalog ? JSON.parse(savedCatalog) : DEFAULT_PRODUCTS;
+
+                var savedAgents = localStorage.getItem('inguiclean_agents') || localStorage.getItem('cleanlogix_agents');
+                agents = savedAgents ? JSON.parse(savedAgents) : DEFAULT_AGENTS;
+
+                var savedOrders = localStorage.getItem('inguiclean_orders') || localStorage.getItem('cleanlogix_orders');
+                orders = savedOrders ? JSON.parse(savedOrders) : [];
             } catch(e) {
                 catalog = DEFAULT_PRODUCTS;
                 agents = DEFAULT_AGENTS;
                 orders = [];
             }
+
+            // Sauvegarde immédiate pour stabiliser la structure
+            localStorage.setItem('inguiclean_catalog', JSON.stringify(catalog));
+            localStorage.setItem('inguiclean_agents', JSON.stringify(agents));
 
             initAgentsSelect();
             renderCatalog();
@@ -229,6 +239,8 @@
             var viewManager = document.getElementById('view-manager');
             var btnAgent = document.getElementById('btn-role-agent');
             var btnManager = document.getElementById('btn-role-manager');
+
+            if (!viewAgent || !viewManager) return;
 
             if (role === 'agent') {
                 viewAgent.classList.remove('hidden');
@@ -390,7 +402,6 @@
             orders.unshift(newOrder);
             localStorage.setItem('inguiclean_orders', JSON.stringify(orders));
 
-            // Envoi garanti de la notification Ntfy via double méthode (fetch + image ping)
             var msg = "Agent: " + agent + "\nZone: " + loc + "\nPriorite: " + prio + "\nProduits:\n" + items.map(i => "- " + i.name + " (x" + i.quantity + ")").join("\n") + (comm ? "\nRemarque: " + comm : "");
             
             try {
@@ -400,7 +411,6 @@
                 }).catch(function() {});
             } catch(e) {}
 
-            // Méthode de secours universelle par chargement d'image (contourne les blocages CORS mobiles)
             var pingImg = new Image();
             pingImg.src = "https://ntfy.sh/inguiclean-responsable-2256/publish?message=" + encodeURIComponent(msg);
 
@@ -450,3 +460,85 @@
             localStorage.setItem('inguiclean_agents', JSON.stringify(agents));
             initAgentsSelect();
             renderManagerManagementLists();
+            document.getElementById('new-agent-name').value = "";
+            document.getElementById('new-agent-sector').value = "";
+        }
+
+        function deleteAgent(id) {
+            agents = agents.filter(function(a) { return a.id !== id; });
+            localStorage.setItem('inguiclean_agents', JSON.stringify(agents));
+            initAgentsSelect();
+            renderManagerManagementLists();
+        }
+
+        function addNewProduct() {
+            var name = document.getElementById('new-prod-name').value;
+            var unit = document.getElementById('new-prod-unit').value;
+            var cat = document.getElementById('new-prod-cat').value;
+            if (!name) return alert("Entrez un produit");
+
+            catalog.push({ id: "p_" + Date.now(), name: name, unit: unit || "Unité", category: cat });
+            localStorage.setItem('inguiclean_catalog', JSON.stringify(catalog));
+            renderCatalog();
+            renderManagerManagementLists();
+            document.getElementById('new-prod-name').value = "";
+            document.getElementById('new-prod-unit').value = "";
+        }
+
+        function deleteProduct(id) {
+            catalog = catalog.filter(function(p) { return p.id !== id; });
+            localStorage.setItem('inguiclean_catalog', JSON.stringify(catalog));
+            renderCatalog();
+            renderManagerManagementLists();
+        }
+
+        function clearAllOrders() {
+            if (!confirm("Tout effacer ?")) return;
+            orders = [];
+            localStorage.setItem('inguiclean_orders', JSON.stringify(orders));
+            renderOrdersList();
+        }
+
+        function renderOrdersList() {
+            var cont = document.getElementById('orders-list-container');
+            if (!cont) return;
+            cont.innerHTML = "";
+
+            if (orders.length === 0) {
+                cont.innerHTML = '<div class="bg-white p-6 rounded-2xl text-center text-slate-400">Aucune commande.</div>';
+                return;
+            }
+
+            orders.forEach(function(o) {
+                var list = o.items ? o.items.map(i => "<li>• " + i.name + " <strong>x" + i.quantity + "</strong></li>").join('') : '';
+                cont.innerHTML += `
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200 space-y-2">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="font-bold text-slate-900">${o.agent}</h4>
+                                <p class="text-xs text-slate-400">${o.location}</p>
+                            </div>
+                            <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-100">${o.priority}</span>
+                        </div>
+                        <ul class="text-xs bg-slate-50 p-2 rounded-xl space-y-1">${list}</ul>
+                        ${o.comment ? `<p class="text-xs text-amber-800 bg-amber-50 p-2 rounded-xl"><strong>Note:</strong> ${o.comment}</p>` : ''}
+                        <div class="flex justify-between items-center pt-2">
+                            <span class="text-xs font-bold text-amber-600">${o.status}</span>
+                            <button onclick="updateStatus('${o.id}', 'Prête')" class="text-xs bg-emerald-600 text-white font-bold px-3 py-1 rounded-xl cursor-pointer">Marquer Prête</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function updateStatus(id, stat) {
+            var ord = orders.find(function(o) { return o.id === id; });
+            if (ord) {
+                ord.status = stat;
+                localStorage.setItem('inguiclean_orders', JSON.stringify(orders));
+                renderOrdersList();
+            }
+        }
+    </script>
+</body>
+</html>
