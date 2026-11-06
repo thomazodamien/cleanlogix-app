@@ -132,7 +132,7 @@
                     <input type="password" id="manager-pin-input" maxlength="4" placeholder="••••" class="w-40 text-center text-2xl font-bold py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none tracking-widest">
                 </div>
                 <button onclick="verifyManagerPin()" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl cursor-pointer">Déverrouiller</button>
-                <p id="pin-error-msg" class="text-rose-500 text-xs font-semibold mt-3 hidden">Code PIN incorrect.</p>
+                <p id="pin-error-msg" class="text-rose-500 text-xs font-semibold mt-3 hidden">Code PIN incorrect (Code: 2256).</p>
             </div>
 
             <!-- Contenu Déverrouillé -->
@@ -142,7 +142,16 @@
                         <h2 class="text-2xl font-black">Administration</h2>
                         <p class="text-slate-400 text-xs mt-1">Canal Ntfy : <strong>inguiclean-responsable-2256</strong></p>
                     </div>
-                    <button onclick="clearAllOrders()" class="text-xs bg-rose-600 text-white font-bold px-4 py-2 rounded-xl cursor-pointer">Vider l'historique</button>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button onclick="exportData()" class="text-xs bg-teal-600 hover:bg-teal-500 text-white font-bold px-3 py-2 rounded-xl cursor-pointer flex items-center gap-1">
+                            <i class="ph-bold ph-download-simple text-sm"></i> Sauvegarder
+                        </button>
+                        <label class="text-xs bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-3 py-2 rounded-xl cursor-pointer flex items-center gap-1">
+                            <i class="ph-bold ph-upload-simple text-sm"></i> Restaurer
+                            <input type="file" id="import-file" accept=".json" onchange="importData(event)" class="hidden">
+                        </label>
+                        <button onclick="clearAllOrders()" class="text-xs bg-rose-600 text-white font-bold px-3 py-2 rounded-xl cursor-pointer">Vider l'historique</button>
+                    </div>
                 </div>
 
                 <!-- COMMANDES -->
@@ -185,7 +194,7 @@
         </div>
     </main>
 
-    <!-- SCRIPT DE RESTAURATION ET ROBUSTESSE -->
+    <!-- SCRIPT DE SÉCURITÉ INTÉGRAL -->
     <script>
         var DEFAULT_PRODUCTS = [
             { id: "p1", name: "Détergent sols concentré 5L", unit: "Bidon 5L", category: "Produits" },
@@ -208,14 +217,13 @@
 
         window.onload = function() {
             try {
-                // Récupération sécurisée avec fusion des anciennes clés pour ne rien perdre
-                var savedCatalog = localStorage.getItem('inguiclean_catalog') || localStorage.getItem('cleanlogix_catalog');
+                var savedCatalog = localStorage.getItem('inguiclean_catalog');
                 catalog = savedCatalog ? JSON.parse(savedCatalog) : DEFAULT_PRODUCTS;
 
-                var savedAgents = localStorage.getItem('inguiclean_agents') || localStorage.getItem('cleanlogix_agents');
+                var savedAgents = localStorage.getItem('inguiclean_agents');
                 agents = savedAgents ? JSON.parse(savedAgents) : DEFAULT_AGENTS;
 
-                var savedOrders = localStorage.getItem('inguiclean_orders') || localStorage.getItem('cleanlogix_orders');
+                var savedOrders = localStorage.getItem('inguiclean_orders');
                 orders = savedOrders ? JSON.parse(savedOrders) : [];
             } catch(e) {
                 catalog = DEFAULT_PRODUCTS;
@@ -223,7 +231,9 @@
                 orders = [];
             }
 
-            // Sauvegarde immédiate pour stabiliser la structure
+            if (!catalog || !Array.isArray(catalog) || catalog.length === 0) catalog = DEFAULT_PRODUCTS;
+            if (!agents || !Array.isArray(agents) || agents.length === 0) agents = DEFAULT_AGENTS;
+
             localStorage.setItem('inguiclean_catalog', JSON.stringify(catalog));
             localStorage.setItem('inguiclean_agents', JSON.stringify(agents));
 
@@ -239,19 +249,28 @@
             var viewManager = document.getElementById('view-manager');
             var btnAgent = document.getElementById('btn-role-agent');
             var btnManager = document.getElementById('btn-role-manager');
+            var lockScreen = document.getElementById('manager-lock-screen');
+            var unlockedContent = document.getElementById('manager-unlocked-content');
 
             if (!viewAgent || !viewManager) return;
 
             if (role === 'agent') {
                 viewAgent.classList.remove('hidden');
                 viewManager.classList.add('hidden');
-                btnAgent.className = "px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md cursor-pointer";
-                btnManager.className = "px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white cursor-pointer";
+                if (btnAgent) btnAgent.className = "px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md cursor-pointer";
+                if (btnManager) btnManager.className = "px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white cursor-pointer";
             } else {
                 viewManager.classList.remove('hidden');
                 viewAgent.classList.add('hidden');
-                btnManager.className = "px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md cursor-pointer";
-                btnAgent.className = "px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white cursor-pointer";
+                if (btnManager) btnManager.className = "px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md cursor-pointer";
+                if (btnAgent) btnAgent.className = "px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white cursor-pointer";
+                
+                if (lockScreen && unlockedContent) {
+                    lockScreen.classList.remove('hidden');
+                    unlockedContent.classList.add('hidden');
+                    var pinInput = document.getElementById('manager-pin-input');
+                    if (pinInput) pinInput.value = "";
+                }
             }
         }
 
@@ -262,12 +281,12 @@
             var content = document.getElementById('manager-unlocked-content');
 
             if (input && input.value === "2256") {
-                lock.classList.add('hidden');
-                content.classList.remove('hidden');
-                error.classList.add('hidden');
+                if (lock) lock.classList.add('hidden');
+                if (content) content.classList.remove('hidden');
+                if (error) error.classList.add('hidden');
                 renderManagerManagementLists();
             } else {
-                error.classList.remove('hidden');
+                if (error) error.classList.remove('hidden');
                 if (input) input.value = "";
             }
         }
@@ -497,6 +516,48 @@
             orders = [];
             localStorage.setItem('inguiclean_orders', JSON.stringify(orders));
             renderOrdersList();
+        }
+
+        function exportData() {
+            var data = {
+                catalog: catalog,
+                agents: agents,
+                orders: orders
+            };
+            var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+            var downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "inguiclean_sauvegarde.json");
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function importData(event) {
+            var file = event.target.files[0];
+            if (!file) return;
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    var parsed = JSON.parse(e.target.result);
+                    if (parsed.catalog && parsed.catalog.length > 0) catalog = parsed.catalog;
+                    if (parsed.agents && parsed.agents.length > 0) agents = parsed.agents;
+                    if (parsed.orders) orders = parsed.orders;
+
+                    localStorage.setItem('inguiclean_catalog', JSON.stringify(catalog));
+                    localStorage.setItem('inguiclean_agents', JSON.stringify(agents));
+                    localStorage.setItem('inguiclean_orders', JSON.stringify(orders));
+
+                    initAgentsSelect();
+                    renderCatalog();
+                    renderManagerManagementLists();
+                    renderOrdersList();
+                    alert("Données restaurées avec succès !");
+                } catch(err) {
+                    alert("Erreur lors de la lecture du fichier de sauvegarde.");
+                }
+            };
+            reader.readAsText(file);
         }
 
         function renderOrdersList() {
