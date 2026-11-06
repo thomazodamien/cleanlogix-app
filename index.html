@@ -317,15 +317,13 @@
             { name: "Marc Leroy", sector: "Bâtiment B - RDC" }
         ];
 
-        let catalog = [];
-        let agents = [];
+        let catalog = DEFAULT_PRODUCTS.map((p, index) => ({ firestoreId: "local_" + index, ...p }));
+        let agents = DEFAULT_AGENTS.map((a, index) => ({ firestoreId: "local_" + index, ...a }));
         let orders = [];
         let cart = {};
 
-        // Démarrage instantané et sécurisé avec fallback local automatique
+        // Démarrage instantané garanti sans blocage
         window.onload = function() {
-            catalog = DEFAULT_PRODUCTS.map((p, index) => ({ firestoreId: "local_" + index, ...p }));
-            agents = DEFAULT_AGENTS.map((a, index) => ({ firestoreId: "local_" + index, ...a }));
             initAgentsSelect();
             renderCatalog();
             renderCart();
@@ -334,7 +332,7 @@
             initCloudSync();
         };
 
-        // SYNCHRONISATION CLOUD EN TEMPS RÉEL SÉCURISÉE
+        // SYNCHRONISATION CLOUD EN TEMPS RÉEL SÉCURISÉE AVEC FALLBACK
         function initCloudSync() {
             if (!isCloudConnected || !db) return;
 
@@ -372,7 +370,7 @@
                         DEFAULT_AGENTS.forEach(a => db.collection("agents").add(a).catch(()=>{}));
                     }
                 }, (error) => {
-                    console.warn("Erreur écoute agents (Cloud) :", error);
+                    console.warn("Erreur écoute agents (Cloud) - Utilisation du mode local :", error);
                 });
 
                 // 3. Écoute catalogue produits
@@ -389,7 +387,7 @@
                         DEFAULT_PRODUCTS.forEach(p => db.collection("catalog").add(p).catch(()=>{}));
                     }
                 }, (error) => {
-                    console.warn("Erreur écoute catalogue (Cloud) :", error);
+                    console.warn("Erreur écoute catalogue (Cloud) - Utilisation du mode local :", error);
                 });
             } catch (err) {
                 console.error("Erreur générale lors de la synchronisation cloud :", err);
@@ -514,4 +512,283 @@
             if (countBadge) countBadge.textContent = `${totalItems} article${totalItems > 1 ? 's' : ''}`;
 
             if (keys.length === 0) {
-                container.innerHTML
+                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">Panier vide</p>`;
+                if (btn) {
+                    btn.disabled = true;
+                    btn.className = "w-full bg-slate-200 text-slate-400 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2";
+                }
+                return;
+            }
+
+            keys.forEach(id => {
+                const p = catalog.find(item => item.firestoreId == id);
+                if (p) {
+                    container.innerHTML += `
+                        <div class="flex justify-between items-center text-xs p-2 bg-slate-50 rounded-lg">
+                            <span class="font-bold text-slate-800">${p.name}</span>
+                            <span class="font-bold text-teal-600">x${cart[id]}</span>
+                        </div>
+                    `;
+                }
+            });
+            if (btn) {
+                btn.disabled = false;
+                btn.className = "w-full bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-teal-500/20 cursor-pointer";
+            }
+        }
+
+        async function submitOrder() {
+            const agent = document.getElementById('agent-name-select').value;
+            const location = document.getElementById('agent-location-input').value;
+            const priorityEl = document.querySelector('input[name="priority"]:checked');
+            const priority = priorityEl ? priorityEl.value : "Normal";
+            const commentInput = document.getElementById('order-comment-input');
+            const comment = commentInput ? commentInput.value.trim() : "";
+
+            const items = Object.keys(cart).map(id => {
+                const p = catalog.find(item => item.firestoreId == id);
+                return { name: p.name, quantity: cart[id], unit: p.unit };
+            });
+
+            const newOrder = {
+                agent: agent,
+                location: location,
+                priority: priority,
+                comment: comment,
+                items: items,
+                status: "En attente",
+                timestamp: Date.now()
+            };
+
+            if (isCloudConnected && db) {
+                try {
+                    await db.collection("orders").add(newOrder);
+                } catch(e) {
+                    console.error("Erreur envoi commande :", e);
+                }
+            }
+
+            cart = {};
+            if (commentInput) commentInput.value = "";
+            renderCatalog();
+            renderCart();
+            alert("Commande transmise avec succès sur le Cloud !");
+        }
+
+        // GESTION ADMIN CLOUD
+        function renderManagerManagementLists() {
+            const agentsListContainer = document.getElementById('manager-agents-list');
+            const productsListContainer = document.getElementById('manager-products-list');
+
+            if (agentsListContainer) {
+                agentsListContainer.innerHTML = "";
+                agents.forEach(a => {
+                    agentsListContainer.innerHTML += `
+                        <div class="flex justify-between items-center text-xs bg-slate-50 p-2 rounded-xl">
+                            <div><strong>${a.name}</strong> <span class="text-slate-400">(${a.sector})</span></div>
+                            <button onclick="deleteAgent('${a.firestoreId}')" class="text-rose-500 hover:text-rose-700 font-bold px-2 cursor-pointer">✕</button>
+                        </div>
+                    `;
+                });
+            }
+
+            if (productsListContainer) {
+                productsListContainer.innerHTML = "";
+                catalog.forEach(p => {
+                    productsListContainer.innerHTML += `
+                        <div class="flex justify-between items-center text-xs bg-slate-50 p-2 rounded-xl">
+                            <div><strong>${p.name}</strong> <span class="text-slate-400">(${p.unit})</span></div>
+                            <button onclick="deleteProduct('${p.firestoreId}')" class="text-rose-500 hover:text-rose-700 font-bold px-2 cursor-pointer">✕</button>
+                        </div>
+                    `;
+                });
+            }
+        }
+
+        async function addNewAgent() {
+            const nameInput = document.getElementById('new-agent-name');
+            const sectorInput = document.getElementById('new-agent-sector');
+            if (!nameInput || !nameInput.value) {
+                alert("Veuillez entrer un nom d'agent.");
+                return;
+            }
+
+            const newAgent = {
+                name: nameInput.value,
+                sector: sectorInput && sectorInput.value ? sectorInput.value : "Général"
+            };
+
+            if (isCloudConnected && db) {
+                try {
+                    await db.collection("agents").add(newAgent);
+                } catch(e) {
+                    alert("Erreur lors de l'ajout de l'agent dans le Cloud.");
+                }
+            }
+            nameInput.value = "";
+            if (sectorInput) sectorInput.value = "";
+        }
+
+        async function deleteAgent(firestoreId) {
+            if (firestoreId.startsWith("local_")) {
+                alert("Cet élément par défaut ne peut pas être supprimé directement.");
+                return;
+            }
+            if (isCloudConnected && db && firestoreId) {
+                try {
+                    await db.collection("agents").doc(firestoreId).delete();
+                } catch(e) {
+                    console.error("Erreur suppression agent :", e);
+                }
+            }
+        }
+
+        async function addNewProduct() {
+            const nameInput = document.getElementById('new-prod-name');
+            const unitInput = document.getElementById('new-prod-unit');
+            if (!nameInput || !nameInput.value) {
+                alert("Veuillez entrer un nom de produit.");
+                return;
+            }
+
+            const newProd = {
+                name: nameInput.value,
+                unit: unitInput && unitInput.value ? unitInput.value : "Unité",
+                icon: "ph-package"
+            };
+
+            if (isCloudConnected && db) {
+                try {
+                    await db.collection("catalog").add(newProd);
+                } catch(e) {
+                    alert("Erreur lors de l'ajout du produit dans le Cloud.");
+                }
+            }
+            nameInput.value = "";
+            if (unitInput) unitInput.value = "";
+        }
+
+        async function deleteProduct(firestoreId) {
+            if (firestoreId.startsWith("local_")) {
+                alert("Cet élément par défaut ne peut pas être supprimé directement.");
+                return;
+            }
+            if (isCloudConnected && db && firestoreId) {
+                try {
+                    await db.collection("catalog").doc(firestoreId).delete();
+                } catch(e) {
+                    console.error("Erreur suppression produit :", e);
+                }
+            }
+        }
+
+        // EFFACER TOUT L'HISTORIQUE DES COMMANDES
+        async function clearAllOrders() {
+            if (!confirm("Voulez-vous vraiment supprimer TOUTES les commandes de l'historique ?")) return;
+
+            if (isCloudConnected && db) {
+                try {
+                    const snapshot = await db.collection("orders").get();
+                    const batch = db.batch();
+                    snapshot.docs.forEach((doc) => {
+                        batch.delete(doc.ref);
+                    });
+                    await batch.commit();
+                    alert("Historique des commandes effacé avec succès !");
+                } catch (e) {
+                    console.error("Erreur lors de la suppression :", e);
+                    alert("Erreur lors de la suppression de l'historique.");
+                }
+            }
+        }
+
+        function renderOrdersList() {
+            const container = document.getElementById('orders-list-container');
+            if (!container) return;
+            container.innerHTML = "";
+
+            if (orders.length === 0) {
+                container.innerHTML = `<div class="bg-white p-8 rounded-2xl text-center text-slate-400">Aucune commande reçue.</div>`;
+                return;
+            }
+
+            orders.forEach(o => {
+                let itemsList = o.items ? o.items.map(i => `<li class="text-xs text-slate-700 font-medium">• ${i.name} : <strong>x${i.quantity} ${i.unit}</strong></li>`).join('') : '';
+                
+                let commentBlock = o.comment ? `
+                    <div class="bg-amber-50 border border-amber-200/80 p-2.5 rounded-xl text-xs text-amber-900 mt-2 flex items-start gap-2">
+                        <i class="ph-bold ph-chat-text text-amber-600 text-sm flex-shrink-0 mt-0.5"></i>
+                        <div>
+                            <strong class="font-bold">Remarque agent :</strong> ${o.comment}
+                        </div>
+                    </div>
+                ` : '';
+
+                container.innerHTML += `
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="font-bold text-slate-900">${o.agent || 'Inconnu'}</h4>
+                                <p class="text-xs text-slate-400">${o.location || ''}</p>
+                            </div>
+                            <span class="text-xs font-bold px-2.5 py-1 rounded-full ${o.priority === 'Urgent' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'}">${o.priority || 'Normal'}</span>
+                        </div>
+                        <ul class="bg-slate-50 p-3 rounded-xl space-y-1">${itemsList}</ul>
+                        ${commentBlock}
+                        <div class="flex justify-between items-center pt-2">
+                            <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full">${o.status || 'En attente'}</span>
+                            <button onclick="updateStatus('${o.firestoreId}', 'Prête')" class="text-xs bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-xl cursor-pointer">Marquer Prête</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        async function updateStatus(id, newStatus) {
+            if (isCloudConnected && db && id) {
+                try {
+                    await db.collection("orders").doc(id).update({ status: newStatus });
+                } catch(e) {
+                    console.error("Erreur mise à jour statut :", e);
+                }
+            }
+        }
+
+        function updateStats() {
+            const pendingEl = document.getElementById('stat-pending');
+            const completedEl = document.getElementById('stat-completed');
+            if (pendingEl) pendingEl.textContent = orders.filter(o => o.status === 'En attente').length;
+            if (completedEl) completedEl.textContent = orders.filter(o => o.status === 'Prête').length;
+        }
+
+        function playNotificationBeep() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(587.33, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.3);
+            } catch(e) {}
+        }
+
+        function showPushNotification(order) {
+            const popup = document.getElementById('push-notification');
+            if (!popup) return;
+            document.getElementById('push-title').textContent = `${order.agent} (${order.priority})`;
+            document.getElementById('push-body').textContent = `${order.location} - Nouvelle commande reçue.`;
+            popup.classList.remove('translate-y-[-180%]');
+            setTimeout(() => { dismissPushNotification(); }, 5000);
+        }
+
+        function dismissPushNotification() {
+            const popup = document.getElementById('push-notification');
+            if (popup) popup.classList.add('translate-y-[-180%]');
+        }
+    </script>
+</body>
+</html>
