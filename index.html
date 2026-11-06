@@ -6,6 +6,19 @@
     <title>InguiClean - Gestion & Réapprovisionnement</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        teal: {
+                            50: '#f0fdfa', 100: '#ccfbf1', 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <!-- Google Fonts & Phosphor Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
@@ -22,21 +35,26 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-teal-500 flex items-center justify-center text-slate-950 font-black text-xl shadow-lg">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-500 flex items-center justify-center text-slate-950 font-black text-xl shadow-lg">
                         <i class="ph-bold ph-plant text-2xl text-white"></i>
                     </div>
                     <div>
                         <h1 class="font-extrabold text-lg leading-tight tracking-tight">Ingui<span class="text-teal-400">Clean</span></h1>
-                        <p class="text-[11px] text-slate-400">Mode Opérationnel</p>
+                        <p class="text-[11px] text-slate-400 flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span>Mode Opérationnel</span>
+                        </p>
                     </div>
                 </div>
 
-                <div class="flex items-center gap-2 bg-slate-800 p-1 rounded-xl border border-slate-700">
-                    <button id="btn-role-agent" onclick="switchRole('agent')" class="px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md cursor-pointer">
-                        Vue Agent
+                <div class="flex items-center gap-2 bg-slate-800 p-1 rounded-xl border border-slate-700/60">
+                    <button id="btn-role-agent" onclick="switchRole('agent')" class="flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md transition-all cursor-pointer">
+                        <i class="ph text-base ph-broom"></i>
+                        <span>Vue Agent</span>
                     </button>
-                    <button id="btn-role-manager" onclick="switchRole('manager')" class="px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white cursor-pointer">
-                        Responsable
+                    <button id="btn-role-manager" onclick="switchRole('manager')" class="relative flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white transition-all cursor-pointer">
+                        <i class="ph text-base ph-clipboard-text"></i>
+                        <span>Responsable</span>
                     </button>
                 </div>
             </div>
@@ -50,69 +68,88 @@
         <div id="view-agent" class="space-y-6">
             <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h2 class="text-xl font-bold text-slate-900">Espace Agent de Propreté</h2>
+                    <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+                        <i class="ph-duotone ph-hand-waving text-teal-600 text-2xl"></i>
+                        Espace Agent de Propreté
+                    </h2>
                     <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Faites votre demande de réapprovisionnement.</p>
                 </div>
 
                 <div class="flex flex-wrap sm:flex-nowrap items-center gap-3">
                     <div class="w-full sm:w-auto">
-                        <label class="block text-[11px] font-bold uppercase text-slate-400 mb-1">Agent Intervenant</label>
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Agent Intervenant</label>
                         <select id="agent-name-select" onchange="onAgentSelectChange()" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-3 py-2 font-semibold">
+                            <!-- Dynamique -->
                         </select>
                     </div>
 
                     <div class="w-full sm:w-auto">
-                        <label class="block text-[11px] font-bold uppercase text-slate-400 mb-1">Zone d'intervention</label>
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Zone d'intervention</label>
                         <input type="text" id="agent-location-input" placeholder="Ex: Bâtiment A - Étage 2" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-3 py-2 font-medium">
                     </div>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- CATALOGUE -->
+                <!-- CATALOGUE & ONGLETS -->
                 <div class="lg:col-span-2 space-y-4">
                     <div class="flex items-center gap-2 overflow-x-auto pb-1 hide-scrollbar" id="category-tabs">
-                        <button onclick="setCategoryFilter('Tous')" class="cat-tab px-4 py-2 rounded-xl text-xs font-bold bg-teal-500 text-slate-950 cursor-pointer">Tous</button>
-                        <button onclick="setCategoryFilter('Produits')" class="cat-tab px-4 py-2 rounded-xl text-xs font-bold bg-white text-slate-600 border border-slate-200 cursor-pointer">Produits</button>
-                        <button onclick="setCategoryFilter('Poubelle')" class="cat-tab px-4 py-2 rounded-xl text-xs font-bold bg-white text-slate-600 border border-slate-200 cursor-pointer">Poubelle</button>
-                        <button onclick="setCategoryFilter('EPI')" class="cat-tab px-4 py-2 rounded-xl text-xs font-bold bg-white text-slate-600 border border-slate-200 cursor-pointer">EPI</button>
-                        <button onclick="setCategoryFilter('Matériel')" class="cat-tab px-4 py-2 rounded-xl text-xs font-bold bg-white text-slate-600 border border-slate-200 cursor-pointer">Matériel</button>
+                        <button onclick="setCategoryFilter('Tous')" class="cat-tab px-4 py-2 rounded-xl text-xs font-bold bg-teal-500 text-slate-950 shadow-sm transition-all whitespace-nowrap cursor-pointer">Tous</button>
+                        <button onclick="setCategoryFilter('Produits')" class="cat-tab px-4 py-2 rounded-xl text-xs font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 transition-all whitespace-nowrap cursor-pointer">Produits</button>
+                        <button onclick="setCategoryFilter('Poubelle')" class="cat-tab px-4 py-2 rounded-xl text-xs font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 transition-all whitespace-nowrap cursor-pointer">Poubelle</button>
+                        <button onclick="setCategoryFilter('EPI')" class="cat-tab px-4 py-2 rounded-xl text-xs font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 transition-all whitespace-nowrap cursor-pointer">EPI</button>
+                        <button onclick="setCategoryFilter('Matériel')" class="cat-tab px-4 py-2 rounded-xl text-xs font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 transition-all whitespace-nowrap cursor-pointer">Matériel</button>
                     </div>
 
-                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-                        <input type="text" id="catalog-search" oninput="renderCatalog()" placeholder="Rechercher un produit..." class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none">
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 space-y-3">
+                        <div class="relative">
+                            <i class="ph ph-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg"></i>
+                            <input type="text" id="catalog-search" oninput="renderCatalog()" placeholder="Rechercher un produit..." class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none">
+                        </div>
                     </div>
-
                     <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
                 </div>
 
                 <!-- PANIER -->
                 <div class="lg:col-span-1">
-                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sticky top-24 flex flex-col space-y-4">
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sticky top-24 flex flex-col">
                         <div class="flex items-center justify-between pb-4 border-b border-slate-100">
-                            <h3 class="font-bold text-slate-900">Panier de Réappro</h3>
+                            <h3 class="font-bold text-slate-900 flex items-center gap-2">
+                                <i class="ph-bold ph-shopping-cart text-teal-600 text-lg"></i>
+                                Panier de Réappro
+                            </h3>
                             <span id="cart-count-badge" class="bg-teal-50 text-teal-700 text-xs font-bold px-2.5 py-0.5 rounded-full border border-teal-200">0 article</span>
                         </div>
 
-                        <div id="cart-items" class="flex-1 overflow-y-auto py-2 space-y-2 min-h-[120px]"></div>
+                        <div id="cart-items" class="flex-1 overflow-y-auto py-4 space-y-3 min-h-[140px]"></div>
 
-                        <div class="pt-4 border-t border-slate-100 space-y-3">
+                        <div class="pt-4 border-t border-slate-100 space-y-4">
                             <div>
-                                <label class="block text-xs font-bold text-slate-700 mb-1">Urgence :</label>
-                                <select id="order-priority-select" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs font-semibold">
-                                    <option value="Normal">Normal</option>
-                                    <option value="Urgent">Urgent</option>
-                                    <option value="Très Urgent">🚨 Critique</option>
-                                </select>
+                                <label class="block text-xs font-bold text-slate-700 mb-1.5">Urgence :</label>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <label class="flex items-center justify-center p-2 rounded-xl border text-xs font-semibold cursor-pointer has-[:checked]:border-teal-500 has-[:checked]:bg-teal-50">
+                                        <input type="radio" name="priority" value="Normal" checked class="sr-only">
+                                        <span>Normal</span>
+                                    </label>
+                                    <label class="flex items-center justify-center p-2 rounded-xl border text-xs font-semibold cursor-pointer has-[:checked]:border-amber-500 has-[:checked]:bg-amber-50">
+                                        <input type="radio" name="priority" value="Urgent" class="sr-only">
+                                        <span>Urgent</span>
+                                    </label>
+                                    <label class="flex items-center justify-center p-2 rounded-xl border text-xs font-semibold cursor-pointer has-[:checked]:border-rose-500 has-[:checked]:bg-rose-50">
+                                        <input type="radio" name="priority" value="Très Urgent" class="sr-only">
+                                        <span class="text-rose-600">🚨 Critique</span>
+                                    </label>
+                                </div>
                             </div>
 
                             <div>
-                                <label class="block text-xs font-bold text-slate-700 mb-1">Remarque :</label>
-                                <textarea id="order-comment-input" rows="2" placeholder="Précisez un détail..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs outline-none resize-none"></textarea>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Commentaire / Remarque :</label>
+                                <textarea id="order-comment-input" rows="2" placeholder="Précisez un détail..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 outline-none resize-none"></textarea>
                             </div>
 
-                            <button id="btn-submit-order" onclick="submitOrder()" disabled class="w-full bg-slate-200 text-slate-400 font-bold py-3 px-4 rounded-xl">
-                                Envoyer au Responsable
+                            <button id="btn-submit-order" onclick="submitOrder()" disabled class="w-full bg-slate-200 text-slate-400 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2">
+                                <i class="ph-bold ph-paper-plane-right text-lg"></i>
+                                <span>Envoyer au Responsable</span>
                             </button>
                         </div>
                     </div>
@@ -124,68 +161,90 @@
         <div id="view-manager" class="hidden space-y-6">
             <!-- Écran PIN -->
             <div id="manager-lock-screen" class="max-w-md mx-auto my-12 bg-white p-8 rounded-2xl shadow-xl border border-slate-200 text-center">
-                <div class="w-16 h-16 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl font-bold">
-                    🔑
+                <div class="w-16 h-16 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
+                    <i class="ph-bold ph-lock-key"></i>
                 </div>
                 <h2 class="text-xl font-extrabold text-slate-900">Espace Responsable</h2>
                 <div class="my-6">
                     <input type="password" id="manager-pin-input" maxlength="4" placeholder="••••" class="w-40 text-center text-2xl font-bold py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none tracking-widest">
                 </div>
                 <button onclick="verifyManagerPin()" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl cursor-pointer">Déverrouiller</button>
-                <p id="pin-error-msg" class="text-rose-500 text-xs font-semibold mt-3 hidden">Code PIN incorrect (Code: 2256).</p>
+                <p id="pin-error-msg" class="text-rose-500 text-xs font-semibold mt-3 hidden">Code PIN incorrect.</p>
             </div>
 
-            <!-- Contenu Déverrouillé -->
+            <!-- Contenu Responsable Déverrouillé -->
             <div id="manager-unlocked-content" class="hidden space-y-6">
-                <div class="bg-slate-900 text-white p-6 rounded-2xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div>
-                        <h2 class="text-2xl font-black">Administration</h2>
-                        <p class="text-slate-400 text-xs mt-1">Canal Ntfy : <strong>inguiclean-responsable-2256</strong></p>
-                    </div>
-                    <div class="flex flex-wrap items-center gap-2">
-                        <button onclick="exportData()" class="text-xs bg-teal-600 hover:bg-teal-500 text-white font-bold px-3 py-2 rounded-xl cursor-pointer flex items-center gap-1">
-                            <i class="ph-bold ph-download-simple text-sm"></i> Sauvegarder
-                        </button>
-                        <label class="text-xs bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-3 py-2 rounded-xl cursor-pointer flex items-center gap-1">
-                            <i class="ph-bold ph-upload-simple text-sm"></i> Restaurer
-                            <input type="file" id="import-file" accept=".json" onchange="importData(event)" class="hidden">
-                        </label>
-                        <button onclick="clearAllOrders()" class="text-xs bg-rose-600 text-white font-bold px-3 py-2 rounded-xl cursor-pointer">Vider l'historique</button>
+                <div class="bg-gradient-to-r from-teal-500 to-emerald-600 text-slate-950 p-4 rounded-2xl shadow-md flex items-center justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-slate-900/10 flex items-center justify-center text-2xl flex-shrink-0">
+                            <i class="ph-bold ph-bell"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-extrabold text-sm leading-tight">Canal Ntfy actif</h4>
+                            <p class="text-xs opacity-90">Canal : <strong class="underline">inguiclean-responsable-2256</strong></p>
+                        </div>
                     </div>
                 </div>
 
-                <!-- COMMANDES -->
+                <div class="bg-slate-900 text-white p-6 rounded-2xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div>
+                        <h2 class="text-2xl font-black">Suivi des Demandes & Administration</h2>
+                        <p class="text-slate-400 text-xs sm:text-sm mt-1">Gérez vos commandes, agents et produits en temps réel.</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="bg-slate-800 p-3 rounded-xl text-center min-w-[85px]">
+                            <span id="stat-pending" class="block text-2xl font-black text-amber-400">0</span>
+                            <span class="text-[10px] text-slate-400 font-semibold">À Traiter</span>
+                        </div>
+                        <div class="bg-slate-800 p-3 rounded-xl text-center min-w-[85px]">
+                            <span id="stat-completed" class="block text-2xl font-black text-emerald-400">0</span>
+                            <span class="text-[10px] text-slate-400 font-semibold">Prêtes</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- COMMANDES (EN HAUT) -->
                 <div class="space-y-4">
-                    <h3 class="font-extrabold text-slate-900 text-xl">Commandes Reçues</h3>
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <h3 class="font-extrabold text-slate-900 text-xl flex items-center gap-2">
+                            <i class="ph-bold ph-clipboard-text text-teal-600 text-2xl"></i> Commandes Reçues
+                        </h3>
+                        <button onclick="clearAllOrders()" class="text-xs bg-rose-600 hover:bg-rose-500 text-white font-bold px-4 py-2.5 rounded-xl transition-all shadow-md cursor-pointer flex items-center justify-center gap-2">
+                            <i class="ph-bold ph-trash text-sm"></i>
+                            <span>Vider tout l'historique</span>
+                        </button>
+                    </div>
                     <div id="orders-list-container" class="space-y-4"></div>
                 </div>
 
-                <!-- GESTION -->
+                <!-- ADMINISTRATION (EN DESSOUS) -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-slate-200">
-                    <!-- AGENTS -->
-                    <div class="bg-white p-5 rounded-2xl border border-slate-200 space-y-4">
-                        <h3 class="font-bold text-slate-900">Ajouter un Agent</h3>
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                        <h3 class="font-bold text-slate-900 flex items-center gap-2">
+                            <i class="ph-bold ph-users text-teal-600 text-lg"></i> Gestion des Agents
+                        </h3>
                         <div class="space-y-2">
                             <input type="text" id="new-agent-name" placeholder="Nom de l'agent" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none">
-                            <input type="text" id="new-agent-sector" placeholder="Zone (ex: Bâtiment A)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none">
-                            <button onclick="addNewAgent()" class="w-full bg-teal-600 text-white font-bold py-2 rounded-xl text-xs cursor-pointer">Ajouter Agent</button>
+                            <input type="text" id="new-agent-sector" placeholder="Zone" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none">
+                            <button onclick="addNewAgent()" class="w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-2.5 rounded-xl text-xs cursor-pointer">Ajouter l'agent</button>
                         </div>
                         <div id="manager-agents-list" class="space-y-2 max-h-40 overflow-y-auto pt-2 border-t border-slate-100"></div>
                     </div>
 
-                    <!-- PRODUITS -->
-                    <div class="bg-white p-5 rounded-2xl border border-slate-200 space-y-4">
-                        <h3 class="font-bold text-slate-900">Ajouter un Produit</h3>
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                        <h3 class="font-bold text-slate-900 flex items-center gap-2">
+                            <i class="ph-bold ph-package text-teal-600 text-lg"></i> Catalogue des Produits
+                        </h3>
                         <div class="space-y-2">
                             <input type="text" id="new-prod-name" placeholder="Nom du produit" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none">
-                            <input type="text" id="new-prod-unit" placeholder="Unité (ex: Bidon 5L)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none">
-                            <select id="new-prod-cat" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none">
+                            <input type="text" id="new-prod-unit" placeholder="Unité" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none">
+                            <select id="new-prod-cat" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none font-medium">
                                 <option value="Produits">Produits</option>
                                 <option value="Poubelle">Poubelle</option>
                                 <option value="EPI">EPI</option>
                                 <option value="Matériel">Matériel</option>
                             </select>
-                            <button onclick="addNewProduct()" class="w-full bg-teal-600 text-white font-bold py-2 rounded-xl text-xs cursor-pointer">Ajouter Produit</button>
+                            <button onclick="addNewProduct()" class="w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-2.5 rounded-xl text-xs cursor-pointer">Ajouter au catalogue</button>
                         </div>
                         <div id="manager-products-list" class="space-y-2 max-h-40 overflow-y-auto pt-2 border-t border-slate-100"></div>
                     </div>
@@ -194,397 +253,392 @@
         </div>
     </main>
 
-    <!-- SCRIPT DE SÉCURITÉ INTÉGRAL -->
-    <script>
-        var DEFAULT_PRODUCTS = [
-            { id: "p1", name: "Détergent sols concentré 5L", unit: "Bidon 5L", category: "Produits" },
-            { id: "p2", name: "Désinfectant multi-surfaces 750ml", unit: "Flacon", category: "Produits" },
-            { id: "p3", name: "Sacs poubelle 100L renforcés", unit: "Rouleau de 25", category: "Poubelle" },
-            { id: "p4", name: "Gants nitrile jetables", unit: "Boîte de 100", category: "EPI" },
-            { id: "p5", name: "Chiffons microfibres pro", unit: "Lot de 10", category: "Matériel" }
+    <!-- LOGIQUE GLOBALE INTERNE (FIREBASE & SECOURS) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        const firebaseConfig = {
+            databaseURL: "https://inguiclean-default-rtdb.europe-west1.firebasedatabase.app/"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        const INITIAL_PRODUCTS = [
+            { id: "p1", name: "Détergent sols concentré 5L", unit: "Bidon 5L", category: "Produits", icon: "ph-drop" },
+            { id: "p2", name: "Désinfectant multi-surfaces 750ml", unit: "Flacon", category: "Produits", icon: "ph-spray-bottle" },
+            { id: "p3", name: "Sacs poubelle 100L renforcés", unit: "Rouleau de 25", category: "Poubelle", icon: "ph-trash" },
+            { id: "p4", name: "Gants nitrile jetables", unit: "Boîte de 100", category: "EPI", icon: "ph-hand" },
+            { id: "p5", name: "Chiffons microfibres pro", unit: "Lot de 10", category: "Matériel", icon: "ph-stack" },
+            { id: "p6", name: "Gel détartrant sanitaires", unit: "Flacon 1L", category: "Produits", icon: "ph-toilet" }
         ];
 
-        var DEFAULT_AGENTS = [
+        const INITIAL_AGENTS = [
             { id: "a1", name: "Sophie Martin", sector: "Bâtiment A - Étage 1" },
             { id: "a2", name: "Marc Leroy", sector: "Bâtiment B - RDC" }
         ];
 
-        var catalog = [];
-        var agents = [];
-        var orders = [];
-        var cart = {};
-        var currentCategory = "Tous";
+        // Charger immédiatement les données locales pour éviter l'écran vide
+        window.catalog = JSON.parse(localStorage.getItem('inguiclean_catalog')) || INITIAL_PRODUCTS;
+        window.agents = JSON.parse(localStorage.getItem('inguiclean_agents')) || INITIAL_AGENTS;
+        window.orders = JSON.parse(localStorage.getItem('inguiclean_orders')) || [];
+        window.cart = {};
+        window.currentCategory = "Tous";
+        const ntfyTopic = "inguiclean-responsable-2256";
 
-        window.onload = function() {
-            try {
-                var savedCatalog = localStorage.getItem('inguiclean_catalog');
-                catalog = savedCatalog ? JSON.parse(savedCatalog) : DEFAULT_PRODUCTS;
-
-                var savedAgents = localStorage.getItem('inguiclean_agents');
-                agents = savedAgents ? JSON.parse(savedAgents) : DEFAULT_AGENTS;
-
-                var savedOrders = localStorage.getItem('inguiclean_orders');
-                orders = savedOrders ? JSON.parse(savedOrders) : [];
-            } catch(e) {
-                catalog = DEFAULT_PRODUCTS;
-                agents = DEFAULT_AGENTS;
-                orders = [];
-            }
-
-            if (!catalog || !Array.isArray(catalog) || catalog.length === 0) catalog = DEFAULT_PRODUCTS;
-            if (!agents || !Array.isArray(agents) || agents.length === 0) agents = DEFAULT_AGENTS;
-
-            localStorage.setItem('inguiclean_catalog', JSON.stringify(catalog));
-            localStorage.setItem('inguiclean_agents', JSON.stringify(agents));
-
+        // Initialisation synchrone de l'interface
+        window.addEventListener('DOMContentLoaded', () => {
             initAgentsSelect();
             renderCatalog();
             renderCart();
             renderManagerManagementLists();
             renderOrdersList();
-        };
+            updateStats();
 
-        function switchRole(role) {
-            var viewAgent = document.getElementById('view-agent');
-            var viewManager = document.getElementById('view-manager');
-            var btnAgent = document.getElementById('btn-role-agent');
-            var btnManager = document.getElementById('btn-role-manager');
-            var lockScreen = document.getElementById('manager-lock-screen');
-            var unlockedContent = document.getElementById('manager-unlocked-content');
+            // Synchronisation Firebase en arrière-plan
+            onValue(ref(db, 'catalog'), (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    window.catalog = Object.keys(data).map(key => ({ id: key, ...data[key] }));
+                    localStorage.setItem('inguiclean_catalog', JSON.stringify(window.catalog));
+                }
+                renderCatalog();
+                renderManagerManagementLists();
+            });
+
+            onValue(ref(db, 'agents'), (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    window.agents = Object.keys(data).map(key => ({ id: key, ...data[key] }));
+                    localStorage.setItem('inguiclean_agents', JSON.stringify(window.agents));
+                }
+                initAgentsSelect();
+                renderManagerManagementLists();
+            });
+
+            onValue(ref(db, 'orders'), (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    window.orders = Object.keys(data).map(key => ({ id: key, ...data[key] })).sort((a,b) => b.timestamp - a.timestamp);
+                    localStorage.setItem('inguiclean_orders', JSON.stringify(window.orders));
+                } else {
+                    window.orders = [];
+                }
+                renderOrdersList();
+                updateStats();
+            });
+        });
+
+        window.switchRole = function(role) {
+            const viewAgent = document.getElementById('view-agent');
+            const viewManager = document.getElementById('view-manager');
+            const btnAgent = document.getElementById('btn-role-agent');
+            const btnManager = document.getElementById('btn-role-manager');
 
             if (!viewAgent || !viewManager) return;
 
             if (role === 'agent') {
                 viewAgent.classList.remove('hidden');
                 viewManager.classList.add('hidden');
-                if (btnAgent) btnAgent.className = "px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md cursor-pointer";
-                if (btnManager) btnManager.className = "px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white cursor-pointer";
+                if (btnAgent) btnAgent.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md transition-all cursor-pointer";
+                if (btnManager) btnManager.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white transition-all cursor-pointer";
             } else {
                 viewManager.classList.remove('hidden');
                 viewAgent.classList.add('hidden');
-                if (btnManager) btnManager.className = "px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md cursor-pointer";
-                if (btnAgent) btnAgent.className = "px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white cursor-pointer";
-                
-                if (lockScreen && unlockedContent) {
-                    lockScreen.classList.remove('hidden');
-                    unlockedContent.classList.add('hidden');
-                    var pinInput = document.getElementById('manager-pin-input');
-                    if (pinInput) pinInput.value = "";
-                }
+                if (btnManager) btnManager.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-teal-500 text-slate-950 shadow-md transition-all cursor-pointer";
+                if (btnAgent) btnAgent.className = "flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white transition-all cursor-pointer";
             }
         }
 
-        function verifyManagerPin() {
-            var input = document.getElementById('manager-pin-input');
-            var error = document.getElementById('pin-error-msg');
-            var lock = document.getElementById('manager-lock-screen');
-            var content = document.getElementById('manager-unlocked-content');
+        window.verifyManagerPin = function() {
+            const pinInput = document.getElementById('manager-pin-input');
+            const errorMsg = document.getElementById('pin-error-msg');
+            const lockScreen = document.getElementById('manager-lock-screen');
+            const unlockedContent = document.getElementById('manager-unlocked-content');
 
-            if (input && input.value === "2256") {
-                if (lock) lock.classList.add('hidden');
-                if (content) content.classList.remove('hidden');
-                if (error) error.classList.add('hidden');
+            if (pinInput && pinInput.value === "2256") {
+                if(lockScreen) lockScreen.classList.add('hidden');
+                if(unlockedContent) unlockedContent.classList.remove('hidden');
+                if(errorMsg) errorMsg.classList.add('hidden');
                 renderManagerManagementLists();
             } else {
-                if (error) error.classList.remove('hidden');
-                if (input) input.value = "";
+                if(errorMsg) errorMsg.classList.remove('hidden');
+                if(pinInput) pinInput.value = "";
             }
         }
 
         function initAgentsSelect() {
-            var select = document.getElementById('agent-name-select');
+            const select = document.getElementById('agent-name-select');
             if (!select) return;
             select.innerHTML = "";
-            agents.forEach(function(a) {
-                select.innerHTML += '<option value="' + a.name + '" data-sector="' + a.sector + '">' + a.name + '</option>';
+            window.agents.forEach(a => {
+                select.innerHTML += `<option value="${a.name}" data-sector="${a.sector}">${a.name}</option>`;
             });
-            onAgentSelectChange();
+            window.onAgentSelectChange();
         }
 
-        function onAgentSelectChange() {
-            var select = document.getElementById('agent-name-select');
-            var input = document.getElementById('agent-location-input');
-            if (!select || !input) return;
-            var opt = select.options[select.selectedIndex];
-            if (opt) input.value = opt.getAttribute('data-sector') || '';
+        window.onAgentSelectChange = function() {
+            const select = document.getElementById('agent-name-select');
+            const locationInput = document.getElementById('agent-location-input');
+            if (!select || !locationInput) return;
+            const selectedOpt = select.options[select.selectedIndex];
+            if (selectedOpt) {
+                locationInput.value = selectedOpt.getAttribute('data-sector') || '';
+            }
         }
 
-        function setCategoryFilter(cat) {
-            currentCategory = cat;
+        window.setCategoryFilter = function(category) {
+            window.currentCategory = category;
+            const buttons = document.querySelectorAll('#category-tabs button');
+            buttons.forEach(btn => {
+                if (btn.textContent.trim() === category) {
+                    btn.className = "cat-tab px-4 py-2 rounded-xl text-xs font-bold bg-teal-500 text-slate-950 shadow-sm transition-all whitespace-nowrap cursor-pointer";
+                } else {
+                    btn.className = "cat-tab px-4 py-2 rounded-xl text-xs font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 transition-all whitespace-nowrap cursor-pointer";
+                }
+            });
             renderCatalog();
         }
 
         function renderCatalog() {
-            var grid = document.getElementById('products-grid');
-            var search = document.getElementById('catalog-search');
+            const grid = document.getElementById('products-grid');
+            const searchInput = document.getElementById('catalog-search');
             if (!grid) return;
             grid.innerHTML = "";
-            var val = search ? search.value.toLowerCase() : "";
+            const filter = searchInput ? searchInput.value.toLowerCase() : "";
 
-            var filtered = catalog.filter(function(p) {
-                var mCat = (currentCategory === "Tous" || p.category === currentCategory);
-                var mSearch = p.name.toLowerCase().indexOf(val) !== -1;
-                return mCat && mSearch;
+            const filtered = window.catalog.filter(p => {
+                const matchesCategory = (window.currentCategory === "Tous" || p.category === window.currentCategory);
+                const matchesSearch = p.name.toLowerCase().includes(filter);
+                return matchesCategory && matchesSearch;
             });
 
             if (filtered.length === 0) {
-                grid.innerHTML = '<p class="text-xs text-slate-400 col-span-2 text-center py-6">Aucun produit</p>';
+                grid.innerHTML = `<p class="text-xs text-slate-400 col-span-2 text-center py-6">Aucun produit trouvé</p>`;
                 return;
             }
 
-            filtered.forEach(function(p) {
-                var qty = cart[p.id] || 0;
+            filtered.forEach(p => {
+                const key = p.id;
+                const qty = window.cart[key] || 0;
                 grid.innerHTML += `
-                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between gap-3">
-                        <div>
-                            <span class="text-[10px] font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md">${p.category}</span>
-                            <h4 class="font-bold text-slate-900 text-sm mt-1">${p.name}</h4>
-                            <p class="text-xs text-slate-400">${p.unit}</p>
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between gap-4">
+                        <div class="flex items-start gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-xl flex-shrink-0">
+                                <i class="ph ${p.icon || 'ph-package'}"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <span class="inline-block text-[10px] font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md mb-1">${p.category || 'Produits'}</span>
+                                <h4 class="font-bold text-slate-900 text-sm truncate">${p.name}</h4>
+                                <p class="text-xs text-slate-400">${p.unit}</p>
+                            </div>
                         </div>
-                        <div class="flex items-center gap-2 pt-2 border-t border-slate-100">
-                            <button onclick="updateCart('${p.id}', -1)" class="w-8 h-8 rounded-xl bg-slate-100 font-bold cursor-pointer">-</button>
-                            <span class="w-6 text-center font-bold text-sm">${qty}</span>
-                            <button onclick="updateCart('${p.id}', 1)" class="w-8 h-8 rounded-xl bg-teal-500 font-bold text-slate-950 cursor-pointer">+</button>
+                        <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+                            <div class="flex items-center gap-2">
+                                <button onclick="updateCart('${key}', -1)" class="w-8 h-8 rounded-xl bg-slate-100 font-bold cursor-pointer">-</button>
+                                <span class="w-6 text-center font-bold text-sm">${qty}</span>
+                                <button onclick="updateCart('${key}', 1)" class="w-8 h-8 rounded-xl bg-teal-500 font-bold text-slate-950 cursor-pointer">+</button>
+                            </div>
                         </div>
                     </div>
                 `;
             });
         }
 
-        function updateCart(id, delta) {
-            cart[id] = (cart[id] || 0) + delta;
-            if (cart[id] <= 0) delete cart[id];
+        window.updateCart = function(key, delta) {
+            window.cart[key] = (window.cart[key] || 0) + delta;
+            if (window.cart[key] <= 0) delete window.cart[key];
             renderCatalog();
             renderCart();
         }
 
         function renderCart() {
-            var container = document.getElementById('cart-items');
-            var btn = document.getElementById('btn-submit-order');
-            var badge = document.getElementById('cart-count-badge');
-            var keys = Object.keys(cart);
+            const container = document.getElementById('cart-items');
+            const btn = document.getElementById('btn-submit-order');
+            const countBadge = document.getElementById('cart-count-badge');
+            const keys = Object.keys(window.cart);
             if (!container) return;
             container.innerHTML = "";
 
-            var count = 0;
-            keys.forEach(function(k) { count += cart[k]; });
-            if (badge) badge.textContent = count + " article" + (count > 1 ? 's' : '');
+            let totalItems = 0;
+            keys.forEach(k => totalItems += window.cart[k]);
+            if (countBadge) countBadge.textContent = `${totalItems} article${totalItems > 1 ? 's' : ''}`;
 
             if (keys.length === 0) {
-                container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Panier vide</p>';
+                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">Panier vide</p>`;
                 if (btn) {
                     btn.disabled = true;
-                    btn.className = "w-full bg-slate-200 text-slate-400 font-bold py-3 px-4 rounded-xl";
+                    btn.className = "w-full bg-slate-200 text-slate-400 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2";
                 }
                 return;
             }
 
-            keys.forEach(function(k) {
-                var p = catalog.find(function(i) { return i.id === k; });
+            keys.forEach(k => {
+                const p = window.catalog.find(item => item.id === k);
                 if (p) {
                     container.innerHTML += `
                         <div class="flex justify-between items-center text-xs p-2 bg-slate-50 rounded-lg">
                             <span class="font-bold text-slate-800">${p.name}</span>
-                            <span class="font-bold text-teal-600">x${cart[k]}</span>
+                            <span class="font-bold text-teal-600">x${window.cart[k]}</span>
                         </div>
                     `;
                 }
             });
-
             if (btn) {
                 btn.disabled = false;
-                btn.className = "w-full bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold py-3 px-4 rounded-xl shadow-lg cursor-pointer";
+                btn.className = "w-full bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg cursor-pointer";
             }
         }
 
-        function submitOrder() {
-            var agent = document.getElementById('agent-name-select').value;
-            var loc = document.getElementById('agent-location-input').value;
-            var prio = document.getElementById('order-priority-select').value;
-            var comm = document.getElementById('order-comment-input').value;
+        window.submitOrder = function() {
+            const agent = document.getElementById('agent-name-select').value;
+            const location = document.getElementById('agent-location-input').value;
+            const priorityEl = document.querySelector('input[name="priority"]:checked');
+            const priority = priorityEl ? priorityEl.value : "Normal";
+            const commentInput = document.getElementById('order-comment-input');
+            const comment = commentInput ? commentInput.value.trim() : "";
 
-            var items = Object.keys(cart).map(function(k) {
-                var p = catalog.find(function(i) { return i.id === k; });
-                return { name: p ? p.name : k, quantity: cart[k], unit: p ? p.unit : '' };
+            const items = Object.keys(window.cart).map(k => {
+                const p = window.catalog.find(item => item.id === k);
+                return { name: p ? p.name : k, quantity: window.cart[k], unit: p ? p.unit : 'Unité' };
             });
 
-            var newOrder = {
-                id: "ord_" + Date.now(),
+            const itemsSummary = items.map(i => `- ${i.name} (x${i.quantity} ${i.unit})`).join('\n');
+
+            const newOrderId = "ord_" + Date.now();
+            const newOrder = {
                 agent: agent,
-                location: loc,
-                priority: prio,
-                comment: comm,
+                location: location,
+                priority: priority,
+                comment: comment,
                 items: items,
-                status: "En attente"
+                status: "En attente",
+                timestamp: Date.now()
             };
 
-            orders.unshift(newOrder);
-            localStorage.setItem('inguiclean_orders', JSON.stringify(orders));
+            set(ref(db, 'orders/' + newOrderId), newOrder);
 
-            var msg = "Agent: " + agent + "\nZone: " + loc + "\nPriorite: " + prio + "\nProduits:\n" + items.map(i => "- " + i.name + " (x" + i.quantity + ")").join("\n") + (comm ? "\nRemarque: " + comm : "");
-            
+            const textMessage = `Agent: ${agent}\nZone: ${location}\nPriorite: ${priority}\nProduits:\n${itemsSummary}\nRemarque: ${comment || 'Aucune'}`;
             try {
-                fetch("https://ntfy.sh/inguiclean-responsable-2256", {
-                    method: "POST",
-                    body: msg
-                }).catch(function() {});
+                fetch(`https://ntfy.sh/${ntfyTopic}`, {
+                    method: 'POST',
+                    body: textMessage
+                }).catch(() => {
+                    new Image().src = `https://ntfy.sh/${ntfyTopic}/publish?message=${encodeURIComponent(textMessage)}`;
+                });
             } catch(e) {}
 
-            var pingImg = new Image();
-            pingImg.src = "https://ntfy.sh/inguiclean-responsable-2256/publish?message=" + encodeURIComponent(msg);
-
-            cart = {};
-            document.getElementById('order-comment-input').value = "";
+            window.cart = {};
+            if (commentInput) commentInput.value = "";
             renderCatalog();
             renderCart();
-            renderOrdersList();
-            alert("Demande envoyée et notification transmise avec succès !");
+            alert("Commande transmise avec succès ! Notification envoyée.");
         }
 
         function renderManagerManagementLists() {
-            var agCont = document.getElementById('manager-agents-list');
-            var prCont = document.getElementById('manager-products-list');
+            const agentsListContainer = document.getElementById('manager-agents-list');
+            const productsListContainer = document.getElementById('manager-products-list');
 
-            if (agCont) {
-                agCont.innerHTML = "";
-                agents.forEach(function(a) {
-                    agCont.innerHTML += `
+            if (agentsListContainer) {
+                agentsListContainer.innerHTML = "";
+                window.agents.forEach(a => {
+                    agentsListContainer.innerHTML += `
                         <div class="flex justify-between items-center text-xs bg-slate-50 p-2 rounded-xl">
-                            <span><strong>${a.name}</strong> (${a.sector})</span>
-                            <button onclick="deleteAgent('${a.id}')" class="text-rose-500 font-bold cursor-pointer">✕</button>
+                            <div><strong>${a.name}</strong> <span class="text-slate-400">(${a.sector})</span></div>
+                            <button onclick="deleteAgent('${a.id}')" class="text-rose-500 font-bold px-2 cursor-pointer">✕</button>
                         </div>
                     `;
                 });
             }
 
-            if (prCont) {
-                prCont.innerHTML = "";
-                catalog.forEach(function(p) {
-                    prCont.innerHTML += `
+            if (productsListContainer) {
+                productsListContainer.innerHTML = "";
+                window.catalog.forEach(p => {
+                    productsListContainer.innerHTML += `
                         <div class="flex justify-between items-center text-xs bg-slate-50 p-2 rounded-xl">
-                            <span><strong>${p.name}</strong> (${p.unit})</span>
-                            <button onclick="deleteProduct('${p.id}')" class="text-rose-500 font-bold cursor-pointer">✕</button>
+                            <div><strong>${p.name}</strong> <span class="text-slate-400">(${p.unit} - <span class="text-teal-600 font-bold">${p.category || 'Produits'}</span>)</span></div>
+                            <button onclick="deleteProduct('${p.id}')" class="text-rose-500 font-bold px-2 cursor-pointer">✕</button>
                         </div>
                     `;
                 });
             }
         }
 
-        function addNewAgent() {
-            var name = document.getElementById('new-agent-name').value;
-            var sec = document.getElementById('new-agent-sector').value;
-            if (!name) return alert("Entrez un nom");
+        window.addNewAgent = function() {
+            const nameInput = document.getElementById('new-agent-name');
+            const sectorInput = document.getElementById('new-agent-sector');
+            if (!nameInput || !nameInput.value) return alert("Entrez un nom.");
 
-            agents.push({ id: "a_" + Date.now(), name: name, sector: sec || "Général" });
-            localStorage.setItem('inguiclean_agents', JSON.stringify(agents));
-            initAgentsSelect();
-            renderManagerManagementLists();
-            document.getElementById('new-agent-name').value = "";
-            document.getElementById('new-agent-sector').value = "";
+            const newAgentId = "a_" + Date.now();
+            set(ref(db, 'agents/' + newAgentId), {
+                name: nameInput.value,
+                sector: sectorInput?.value || "Général"
+            });
+
+            nameInput.value = "";
+            if(sectorInput) sectorInput.value = "";
         }
 
-        function deleteAgent(id) {
-            agents = agents.filter(function(a) { return a.id !== id; });
-            localStorage.setItem('inguiclean_agents', JSON.stringify(agents));
-            initAgentsSelect();
-            renderManagerManagementLists();
+        window.deleteAgent = function(id) {
+            remove(ref(db, 'agents/' + id));
         }
 
-        function addNewProduct() {
-            var name = document.getElementById('new-prod-name').value;
-            var unit = document.getElementById('new-prod-unit').value;
-            var cat = document.getElementById('new-prod-cat').value;
-            if (!name) return alert("Entrez un produit");
+        window.addNewProduct = function() {
+            const nameInput = document.getElementById('new-prod-name');
+            const unitInput = document.getElementById('new-prod-unit');
+            const catSelect = document.getElementById('new-prod-cat');
+            if (!nameInput || !nameInput.value) return alert("Entrez un produit.");
 
-            catalog.push({ id: "p_" + Date.now(), name: name, unit: unit || "Unité", category: cat });
-            localStorage.setItem('inguiclean_catalog', JSON.stringify(catalog));
-            renderCatalog();
-            renderManagerManagementLists();
-            document.getElementById('new-prod-name').value = "";
-            document.getElementById('new-prod-unit').value = "";
+            const category = catSelect ? catSelect.value : "Produits";
+            const newProdId = "p_" + Date.now();
+            set(ref(db, 'catalog/' + newProdId), {
+                name: nameInput.value, 
+                unit: unitInput?.value || "Unité", 
+                category: category,
+                icon: category === 'Poubelle' ? 'ph-trash' : (category === 'EPI' ? 'ph-hand' : 'ph-package')
+            });
+
+            nameInput.value = "";
+            if(unitInput) unitInput.value = "";
         }
 
-        function deleteProduct(id) {
-            catalog = catalog.filter(function(p) { return p.id !== id; });
-            localStorage.setItem('inguiclean_catalog', JSON.stringify(catalog));
-            renderCatalog();
-            renderManagerManagementLists();
+        window.deleteProduct = function(id) {
+            remove(ref(db, 'catalog/' + id));
         }
 
-        function clearAllOrders() {
-            if (!confirm("Tout effacer ?")) return;
-            orders = [];
-            localStorage.setItem('inguiclean_orders', JSON.stringify(orders));
-            renderOrdersList();
-        }
-
-        function exportData() {
-            var data = {
-                catalog: catalog,
-                agents: agents,
-                orders: orders
-            };
-            var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
-            var downloadAnchor = document.createElement('a');
-            downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", "inguiclean_sauvegarde.json");
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
-        }
-
-        function importData(event) {
-            var file = event.target.files[0];
-            if (!file) return;
-            var reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    var parsed = JSON.parse(e.target.result);
-                    if (parsed.catalog && parsed.catalog.length > 0) catalog = parsed.catalog;
-                    if (parsed.agents && parsed.agents.length > 0) agents = parsed.agents;
-                    if (parsed.orders) orders = parsed.orders;
-
-                    localStorage.setItem('inguiclean_catalog', JSON.stringify(catalog));
-                    localStorage.setItem('inguiclean_agents', JSON.stringify(agents));
-                    localStorage.setItem('inguiclean_orders', JSON.stringify(orders));
-
-                    initAgentsSelect();
-                    renderCatalog();
-                    renderManagerManagementLists();
-                    renderOrdersList();
-                    alert("Données restaurées avec succès !");
-                } catch(err) {
-                    alert("Erreur lors de la lecture du fichier de sauvegarde.");
-                }
-            };
-            reader.readAsText(file);
+        window.clearAllOrders = function() {
+            if (!confirm("Voulez-vous supprimer toutes les commandes ?")) return;
+            remove(ref(db, 'orders'));
         }
 
         function renderOrdersList() {
-            var cont = document.getElementById('orders-list-container');
-            if (!cont) return;
-            cont.innerHTML = "";
+            const container = document.getElementById('orders-list-container');
+            if (!container) return;
+            container.innerHTML = "";
 
-            if (orders.length === 0) {
-                cont.innerHTML = '<div class="bg-white p-6 rounded-2xl text-center text-slate-400">Aucune commande.</div>';
+            if (window.orders.length === 0) {
+                container.innerHTML = `<div class="bg-white p-8 rounded-2xl text-center text-slate-400">Aucune commande reçue.</div>`;
                 return;
             }
 
-            orders.forEach(function(o) {
-                var list = o.items ? o.items.map(i => "<li>• " + i.name + " <strong>x" + i.quantity + "</strong></li>").join('') : '';
-                cont.innerHTML += `
-                    <div class="bg-white p-4 rounded-2xl border border-slate-200 space-y-2">
+            window.orders.forEach(o => {
+                let itemsList = o.items ? o.items.map(i => `<li class="text-xs text-slate-700">• ${i.name} : <strong>x${i.quantity} ${i.unit}</strong></li>`).join('') : '';
+                let commentBlock = o.comment ? `<div class="bg-amber-50 border border-amber-200 p-2.5 rounded-xl text-xs text-amber-900 mt-2"><strong>Remarque :</strong> ${o.comment}</div>` : '';
+
+                container.innerHTML += `
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
                         <div class="flex justify-between items-start">
                             <div>
                                 <h4 class="font-bold text-slate-900">${o.agent}</h4>
                                 <p class="text-xs text-slate-400">${o.location}</p>
                             </div>
-                            <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-100">${o.priority}</span>
+                            <span class="text-xs font-bold px-2.5 py-1 rounded-full ${o.priority === 'Urgent' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'}">${o.priority}</span>
                         </div>
-                        <ul class="text-xs bg-slate-50 p-2 rounded-xl space-y-1">${list}</ul>
-                        ${o.comment ? `<p class="text-xs text-amber-800 bg-amber-50 p-2 rounded-xl"><strong>Note:</strong> ${o.comment}</p>` : ''}
+                        <ul class="bg-slate-50 p-3 rounded-xl space-y-1">${itemsList}</ul>
+                        ${commentBlock}
                         <div class="flex justify-between items-center pt-2">
-                            <span class="text-xs font-bold text-amber-600">${o.status}</span>
+                            <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full">${o.status}</span>
                             <button onclick="updateStatus('${o.id}', 'Prête')" class="text-xs bg-emerald-600 text-white font-bold px-3 py-1 rounded-xl cursor-pointer">Marquer Prête</button>
                         </div>
                     </div>
@@ -592,13 +646,15 @@
             });
         }
 
-        function updateStatus(id, stat) {
-            var ord = orders.find(function(o) { return o.id === id; });
-            if (ord) {
-                ord.status = stat;
-                localStorage.setItem('inguiclean_orders', JSON.stringify(orders));
-                renderOrdersList();
-            }
+        window.updateStatus = function(id, newStatus) {
+            set(ref(db, `orders/${id}/status`), newStatus);
+        }
+
+        function updateStats() {
+            const pendingEl = document.getElementById('stat-pending');
+            const completedEl = document.getElementById('stat-completed');
+            if (pendingEl) pendingEl.textContent = window.orders.filter(o => o.status === 'En attente').length;
+            if (completedEl) completedEl.textContent = window.orders.filter(o => o.status === 'Prête').length;
         }
     </script>
 </body>
