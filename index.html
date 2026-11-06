@@ -253,7 +253,7 @@
         </div>
     </main>
 
-    <!-- LOGIQUE CLOUD ROBUSTE (CLEANLOGIXAPP) -->
+    <!-- LOGIQUE CLOUD ET MISE À JOUR INSTANTANÉE -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
@@ -279,7 +279,6 @@
             { id: "a2", name: "Marc Leroy", sector: "Bâtiment B - RDC" }
         ];
 
-        // Chargement immédiat depuis le stockage local de secours pour éviter tout affichage vide
         window.catalog = JSON.parse(localStorage.getItem('cleanlogix_catalog')) || INITIAL_PRODUCTS;
         window.agents = JSON.parse(localStorage.getItem('cleanlogix_agents')) || INITIAL_AGENTS;
         window.orders = JSON.parse(localStorage.getItem('cleanlogix_orders')) || [];
@@ -288,7 +287,6 @@
         const ntfyTopic = "inguiclean-responsable-2256";
 
         window.addEventListener('DOMContentLoaded', () => {
-            // Affichage immédiat pour que l'interface ne soit jamais bloquée
             initAgentsSelect();
             renderCatalog();
             renderCart();
@@ -296,19 +294,15 @@
             renderOrdersList();
             updateStats();
 
-            // Synchronisation en arrière-plan avec Firebase
+            // Écoute des données sur Firebase en temps réel
             onValue(ref(db, 'catalog'), (snapshot) => {
                 const data = snapshot.val();
                 if (data) {
                     window.catalog = Object.keys(data).map(key => ({ id: key, ...data[key] }));
                     localStorage.setItem('cleanlogix_catalog', JSON.stringify(window.catalog));
-                } else {
-                    INITIAL_PRODUCTS.forEach(p => {
-                        set(ref(db, 'catalog/' + p.id), { name: p.name, unit: p.unit, category: p.category, icon: p.icon });
-                    });
+                    renderCatalog();
+                    renderManagerManagementLists();
                 }
-                renderCatalog();
-                renderManagerManagementLists();
             });
 
             onValue(ref(db, 'agents'), (snapshot) => {
@@ -316,13 +310,9 @@
                 if (data) {
                     window.agents = Object.keys(data).map(key => ({ id: key, ...data[key] }));
                     localStorage.setItem('cleanlogix_agents', JSON.stringify(window.agents));
-                } else {
-                    INITIAL_AGENTS.forEach(a => {
-                        set(ref(db, 'agents/' + a.id), { name: a.name, sector: a.sector });
-                    });
+                    initAgentsSelect();
+                    renderManagerManagementLists();
                 }
-                initAgentsSelect();
-                renderManagerManagementLists();
             });
 
             onValue(ref(db, 'orders'), (snapshot) => {
@@ -330,11 +320,13 @@
                 if (data) {
                     window.orders = Object.keys(data).map(key => ({ id: key, ...data[key] })).sort((a,b) => b.timestamp - a.timestamp);
                     localStorage.setItem('cleanlogix_orders', JSON.stringify(window.orders));
+                    renderOrdersList();
+                    updateStats();
                 } else {
                     window.orders = [];
+                    renderOrdersList();
+                    updateStats();
                 }
-                renderOrdersList();
-                updateStats();
             });
         });
 
@@ -379,10 +371,12 @@
         function initAgentsSelect() {
             const select = document.getElementById('agent-name-select');
             if (!select) return;
+            const currentVal = select.value;
             select.innerHTML = "";
             window.agents.forEach(a => {
                 select.innerHTML += `<option value="${a.name}" data-sector="${a.sector}">${a.name}</option>`;
             });
+            if (currentVal) select.value = currentVal;
             window.onAgentSelectChange();
         }
 
@@ -391,7 +385,7 @@
             const locationInput = document.getElementById('agent-location-input');
             if (!select || !locationInput) return;
             const selectedOpt = select.options[select.selectedIndex];
-            if (selectedOpt) {
+            if (selectedOpt && !locationInput.dataset.userEdited) {
                 locationInput.value = selectedOpt.getAttribute('data-sector') || '';
             }
         }
@@ -576,23 +570,31 @@
         window.addNewAgent = function() {
             const nameInput = document.getElementById('new-agent-name');
             const sectorInput = document.getElementById('new-agent-sector');
-            if (!nameInput || !nameInput.value) return alert("Entrez un nom.");
+            if (!nameInput || !nameInput.value) return alert("Entrez un nom d'agent.");
 
             const newAgentId = "a_" + Date.now();
-            const newAgent = { name: nameInput.value, sector: sectorInput?.value || "Général" };
+            const newAgent = { 
+                name: nameInput.value.trim(), 
+                sector: sectorInput?.value.trim() || "Général" 
+            };
 
-            set(ref(db, 'agents/' + newAgentId), newAgent);
-            window.agents.push({ id: newAgentId, ...newAgent });
-            initAgentsSelect();
-            renderManagerManagementLists();
-
-            nameInput.value = "";
-            if(sectorInput) sectorInput.value = "";
+            // Mise à jour immédiate locale + Firebase
+            set(ref(db, 'agents/' + newAgentId), newAgent).then(() => {
+                window.agents.push({ id: newAgentId, ...newAgent });
+                localStorage.setItem('cleanlogix_agents', JSON.stringify(window.agents));
+                initAgentsSelect();
+                renderManagerManagementLists();
+                nameInput.value = "";
+                if(sectorInput) sectorInput.value = "";
+            }).catch((err) => {
+                alert("Erreur lors de l'enregistrement de l'agent.");
+            });
         }
 
         window.deleteAgent = function(id) {
             remove(ref(db, 'agents/' + id));
             window.agents = window.agents.filter(a => a.id !== id);
+            localStorage.setItem('cleanlogix_agents', JSON.stringify(window.agents));
             initAgentsSelect();
             renderManagerManagementLists();
         }
@@ -601,29 +603,33 @@
             const nameInput = document.getElementById('new-prod-name');
             const unitInput = document.getElementById('new-prod-unit');
             const catSelect = document.getElementById('new-prod-cat');
-            if (!nameInput || !nameInput.value) return alert("Entrez un produit.");
+            if (!nameInput || !nameInput.value) return alert("Entrez un nom de produit.");
 
             const category = catSelect ? catSelect.value : "Produits";
             const newProdId = "p_" + Date.now();
             const newProd = {
-                name: nameInput.value, 
-                unit: unitInput?.value || "Unité", 
+                name: nameInput.value.trim(), 
+                unit: unitInput?.value.trim() || "Unité", 
                 category: category,
                 icon: category === 'Poubelle' ? 'ph-trash' : (category === 'EPI' ? 'ph-hand' : 'ph-package')
             };
 
-            set(ref(db, 'catalog/' + newProdId), newProd);
-            window.catalog.push({ id: newProdId, ...newProd });
-            renderCatalog();
-            renderManagerManagementLists();
-
-            nameInput.value = "";
-            if(unitInput) unitInput.value = "";
+            set(ref(db, 'catalog/' + newProdId), newProd).then(() => {
+                window.catalog.push({ id: newProdId, ...newProd });
+                localStorage.setItem('cleanlogix_catalog', JSON.stringify(window.catalog));
+                renderCatalog();
+                renderManagerManagementLists();
+                nameInput.value = "";
+                if(unitInput) unitInput.value = "";
+            }).catch((err) => {
+                alert("Erreur lors de l'enregistrement du produit.");
+            });
         }
 
         window.deleteProduct = function(id) {
             remove(ref(db, 'catalog/' + id));
             window.catalog = window.catalog.filter(p => p.id !== id);
+            localStorage.setItem('cleanlogix_catalog', JSON.stringify(window.catalog));
             renderCatalog();
             renderManagerManagementLists();
         }
@@ -632,6 +638,7 @@
             if (!confirm("Voulez-vous supprimer toutes les commandes ?")) return;
             remove(ref(db, 'orders'));
             window.orders = [];
+            localStorage.setItem('cleanlogix_orders', JSON.stringify(window.orders));
             renderOrdersList();
             updateStats();
         }
@@ -674,6 +681,7 @@
             set(ref(db, `orders/${id}/status`), newStatus);
             const ord = window.orders.find(o => o.id === id);
             if (ord) ord.status = newStatus;
+            localStorage.setItem('cleanlogix_orders', JSON.stringify(window.orders));
             renderOrdersList();
             updateStats();
         }
